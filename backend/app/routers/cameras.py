@@ -11,6 +11,8 @@ import random
 
 router = APIRouter(prefix="/cameras", tags=["cameras"],)
 CHUNK_SIZE = 1024*1024*2
+
+#### FAKE CONFIG DATA
 audio = AudioSteam(id=1, camera_ref=1, codec="aac", time_base=(1, 1), sample_rate=41400,
                    layout_name="stereo", format_name="fltp")
 video = VideoStream(id=1, camera_ref=1, codec="h264", time_base=(1, 1), height=1920, width=1080, sample_aspect_ratio=(16, 9),
@@ -18,10 +20,9 @@ video = VideoStream(id=1, camera_ref=1, codec="h264", time_base=(1, 1), height=1
 
 cam = Camera(id=1, url="rtsp://{ip_address}:8554/city-traffic",
              active_playlist=f"cameras/1/2024-12-07-39/output.m3u8", video=video)
-
 cameras = [cam]
-
 BASE_STORAGE_PATH ="/backend/app/cameras"
+####
 
 @router.get("/")
 async def get_cameras(
