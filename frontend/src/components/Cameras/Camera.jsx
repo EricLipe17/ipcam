@@ -1,6 +1,5 @@
 import ReactPlayer from 'react-player/lazy'
 import { useState } from 'react';
-import axios from 'axios';
 
 const Camera = ({config}) => {
   const [playing, setPlaying] = useState(true);
@@ -16,8 +15,8 @@ const Camera = ({config}) => {
         onPause={() => setPlaying(false)}
         onEnded={() => {
           // Use this to get the next playlist to continue the livestream
-          axios.get(`http://127.0.0.1:8000/cameras/${config.id}/`).then(response => {
-            const camera = response.data
+          fetch(`http://127.0.0.1:8000/cameras/${config.id}/`).then(response => response.json())
+          .then(camera => {
             console.log(camera.active_playlist)
             setUrl(`http://127.0.0.1:8000/${camera.active_playlist}`)
             setPlaying(true)

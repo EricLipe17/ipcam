@@ -5,7 +5,7 @@ import av
 import socket
 import io
 from typing import Annotated, List
-from fastapi import APIRouter, Depends, Header, Response, Request, HTTPException
+from fastapi import APIRouter, Depends, Header, Response, Request, HTTPException, Form
 from fastapi.responses import StreamingResponse, FileResponse
 import random
 
@@ -38,6 +38,12 @@ async def get_camera(id: int,
     camera = cameras[id - 1]
     camera.active_playlist = f"cameras/1/2024-12-08-47/output.m3u8" if random.randint(0, 1) % 2 else "cameras/1/2024-12-07-39/output.m3u8"
     return cameras[id - 1]
+
+@router.post("/add_camera")
+async def add_camera(request: Request):#name: Annotated[str, Form()], url: Annotated[str, Form()], location: Annotated[str, Form()]):
+   body = await request.body()
+   print(body)
+   return {"All": "Good"}
 
 def generate_segment():
     print("Inside generate segment")
