@@ -15,6 +15,7 @@ class CommonSettings(BaseSettings):
     allowed_origins: list[str] = ["*"]
     allowed_hosts: list[str] = ["*"]
     path_prefix: str = ""
+    storage_dir: str = "/backend/app/cameras"
 
 settings = CommonSettings()
 

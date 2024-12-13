@@ -17,20 +17,22 @@ class VideoStream(StreamBase):
     height: int
     width: int
     sample_aspect_ratio: tuple[int, int]
-    bit_rate: int
+    # bit_rate: int
     framerate: tuple[int, int]
     gop_size: int
     pix_fmt: str
 
-class Camera(Base):
+class CameraIn(BaseModel):
+    name: str
     url: str
+    location: str | None = None
+
+class Camera(CameraIn, Base):
     active_playlist: str
     video: VideoStream
     audio: AudioSteam | None = None
     segment_length: int = 10
     is_recording: bool = False
-    is_streaming: bool = False
-
 
 
 
