@@ -1,11 +1,25 @@
 services:
   backend-api:
+    restart: always
     build: .
     ports:
       - "8000:8000"
     volumes:
       - .:/backend
     image: backend-api
+
+  postgres:
+    image: postgres:17.2-bookworm
+    environment:
+      - PGDATA=/var/lib/postgresql/data/
+      - POSTGRES_DB=ipcam_project
+      - POSTGRES_PASSWORD=something_secure
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=ipcam_user
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/:rw
 
   rtsp-server:
     restart: unless-stopped
@@ -34,3 +48,6 @@ services:
     depends_on:
       - rtsp-server
     command: -re -stream_loop -1 -i https://eu-central-1.linodeobjects.com/savant-data/demo/Free_City_Street_Footage.mp4 -c copy -bsf:v h264_mp4toannexb -f rtsp rtsp://rtsp-server:8554/city-traffic2
+
+volumes:
+  postgres_data:

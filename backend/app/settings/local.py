@@ -1,6 +1,7 @@
 from fastapi.security import OAuth2PasswordBearer
 from passlib.context import CryptContext
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from typing import Dict, Any
 
 class CommonSettings(BaseSettings):
     model_config = SettingsConfigDict(env_file='.env', env_file_encoding='utf-8')
@@ -16,6 +17,14 @@ class CommonSettings(BaseSettings):
     allowed_hosts: list[str] = ["*"]
     path_prefix: str = ""
     storage_dir: str = "/backend/app/cameras"
+    db_config: Dict[str, Any] = {
+        "POSTGRES_DB": "ipcam_project",
+        "POSTGRES_PASSWORD": "something_secure",
+        "POSTGRES_HOST": "postgres",
+        "POSTGRES_PORT": 5432,
+        "POSTGRES_USER": "ipcam_user",
+        "POSTGRES_URL": "postgres://ipcam_user:something_secure@postgres:5432"
+    }
 
 settings = CommonSettings()
 
