@@ -1,17 +1,21 @@
 from pydantic import BaseModel
 
+
 class Base(BaseModel):
     id: int
+
 
 class StreamBase(Base):
     camera_ref: int
     codec: str
     time_base: tuple[int, int]
 
+
 class AudioSteam(StreamBase):
     sample_rate: int
     layout_name: str
     format_name: str
+
 
 class VideoStream(StreamBase):
     height: int
@@ -22,10 +26,12 @@ class VideoStream(StreamBase):
     gop_size: int
     pix_fmt: str
 
+
 class CameraIn(BaseModel):
     name: str
     url: str
     location: str | None = None
+
 
 class Camera(CameraIn, Base):
     active_playlist: str
@@ -35,22 +41,19 @@ class Camera(CameraIn, Base):
     is_recording: bool = False
 
 
-
-
-
-
-
-
 class Token(BaseModel):
     access_token: str
     token_type: str
 
+
 class TokenData(BaseModel):
     username: str | None = None
+
 
 class FormData(BaseModel):
     username: str
     password: str
+
 
 class User(BaseModel):
     username: str
@@ -58,8 +61,10 @@ class User(BaseModel):
     full_name: str | None = None
     disabled: bool | None = None
 
+
 class UserInDB(User):
     hashed_password: str
+
 
 class Item(BaseModel):
     name: str

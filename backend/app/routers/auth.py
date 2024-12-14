@@ -8,7 +8,11 @@ from datetime import timedelta
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 
-router = APIRouter(prefix="/auth", tags=["auth"],)
+router = APIRouter(
+    prefix="/auth",
+    tags=["auth"],
+)
+
 
 @router.post("/token")
 async def get_token(

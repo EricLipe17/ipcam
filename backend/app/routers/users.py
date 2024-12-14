@@ -4,7 +4,11 @@ from app.dependencies import get_current_active_user
 from typing import Annotated
 from fastapi import APIRouter, Depends
 
-router = APIRouter(prefix="/users", tags=["users"],)
+router = APIRouter(
+    prefix="/users",
+    tags=["users"],
+)
+
 
 @router.get("/me/", response_model=User)
 async def read_users_me(
@@ -12,6 +16,7 @@ async def read_users_me(
 ):
     print("Get user/me endpoint.")
     return current_user
+
 
 @router.get("/me/items/")
 async def read_own_items(
