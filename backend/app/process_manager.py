@@ -54,14 +54,14 @@ def open_camera(url: str):
   except Exception as e:
     return (camera, "An unknown exception occurred.")
 
-def new_cam(id: int, camera, connection: Connection):
-  # ip_address = socket.gethostbyname('localhost')
-  # camera = av.open(f"rtsp://{ip_address}:8554/city-traffic")
+def new_cam(id: int, url: str, connection: Connection):
+  camera = av.open(url)
   playlist_name = "output.m3u8"
   kwargs = {"mode":'w', "format":"hls",
             "options":{"hls_time": "10",
                        "hls_segment_type": "mpegts",
-                       "hls_playlist_type":"event"
+                       "hls_playlist_type":"event",
+                       "hls_flags": "append_list"
                        }}
   hls_opts = kwargs.get('options')
 
@@ -96,23 +96,25 @@ def new_cam(id: int, camera, connection: Connection):
 
 class CameraProcessManager:
   def __init__(self):
-    self.context = mp.get_context('fork')
+    self.context = mp.get_context('spawn')
     self.processes = dict()
     self.connections = dict()
 
-  def add_camera(self, id: int, name: str, camera):
-    if name in self.processes:
-      raise ValueError(f"Cannot create process with name: {name} because it already exists!")
+  def add_camera(self, id: int, name: str, url: str):
+    try:
+      if name in self.processes:
+        return (False, f"Cannot create process with name: {name} because it already exists!")
 
-    parent_conn, child_conn = mp.Pipe()
-    kwargs = {'id': id, 'camera': camera, 'connection': child_conn}
-
-    p = self.context.Process(name=name, target=new_cam,
-                             kwargs=kwargs, daemon=True)
-    self.processes[name] = p
-    self.connections[name] = parent_conn
-
-    p.start()
+      parent_conn, child_conn = mp.Pipe()
+      kwargs = {'id': id, 'url': url, 'connection': child_conn}
+      p = self.context.Process(name=name, target=new_cam,
+                              kwargs=kwargs, daemon=True)
+      p.start()
+      self.processes[name] = p
+      self.connections[name] = parent_conn
+      return (True, "")
+    except Exception as e:
+      return (False, f"Caught exception trying to start the recording: {e}")
 
 
 
