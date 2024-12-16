@@ -1,7 +1,7 @@
 FROM python:3.13.0-slim-bookworm
 WORKDIR /backend
 
-RUN apt-get update && apt-get install ffmpeg libsm6 libxext6  -y
+RUN apt-get update && apt-get install gcc libpq-dev ffmpeg libsm6 libxext6  -y
 
 ENV PYTHONPATH=/backend
 

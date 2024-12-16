@@ -1,13 +1,25 @@
+from app.db import create_db_and_tables
 from app.routers import auth, cameras, users
 from app.settings.local import settings
 
+from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 import uvicorn
 
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    print("Executing startup tasks")
+    create_db_and_tables()
+    yield
+    print("Executing shutdown tasks")
+
+
 app = FastAPI(
     root_path=settings.path_prefix,
+    lifespan=lifespan,
     title="Backend API",
     description="The description of the API",
     summary="The summmary of the API",
@@ -42,4 +54,4 @@ async def main():
 
 
 if __name__ == "__main__":
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True, lifespan="on")

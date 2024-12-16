@@ -1,5 +1,5 @@
 services:
-  backend-api:
+  api:
     restart: always
     build: .
     ports:
@@ -7,6 +7,8 @@ services:
     volumes:
       - .:/backend
     image: backend-api
+    depends_on:
+      - postgres
 
   postgres:
     image: postgres:17.2-bookworm
