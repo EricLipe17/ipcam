@@ -2,44 +2,42 @@ from sqlmodel import Field, Relationship, SQLModel
 
 
 class StreamBase(SQLModel):
-    camera_id: int | None = Field(
-        default=None, foreign_key="camera.id", ondelete="CASCADE"
-    )
-    codec: str
-    time_base_num: int
-    time_base_den: int
+    camera_id: int = Field(foreign_key="camera.id", ondelete="CASCADE", index=True)
+    codec: str = Field()
+    time_base_num: int = Field()
+    time_base_den: int = Field()
 
 
 class AudioStream(StreamBase, table=True):
     id: int | None = Field(default=None, primary_key=True)
-    sample_rate: int
-    layout_name: str
-    format_name: str
+    sample_rate: int = Field()
+    layout_name: str = Field()
+    format_name: str = Field()
 
 
 class VideoStream(StreamBase, table=True):
     id: int | None = Field(default=None, primary_key=True)
-    height: int
-    width: int
-    sample_aspect_ratio_num: int
-    sample_aspect_ratio_den: int
-    framerate_num: int
-    framerate_den: int
-    gop_size: int
-    pix_fmt: str
+    height: int = Field()
+    width: int = Field()
+    sample_aspect_ratio_num: int = Field()
+    sample_aspect_ratio_den: int = Field()
+    framerate_num: int = Field()
+    framerate_den: int = Field()
+    gop_size: int = Field()
+    pix_fmt: str = Field()
 
 
 class CameraBase(SQLModel):
-    name: str
-    url: str
-    location: str | None = None
+    name: str = Field(index=True, unique=True)
+    url: str = Field()
+    location: str | None = Field(default=None)
 
 
 class Camera(CameraBase, table=True):
-    id: int | None = Field(default=None, primary_key=True)
-    active_playlist: str
-    segment_length: int = 10
-    is_recording: bool = False
+    id: int | None = Field(default=None, primary_key=True, index=True)
+    active_playlist: str | None = Field(default=None)
+    segment_length: int = Field(default=10)
+    is_recording: bool = Field(default=False)
 
 
 class CameraCreate(CameraBase):

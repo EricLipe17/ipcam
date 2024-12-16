@@ -1,13 +1,13 @@
 import av
-import socket
-import os
-import av.container
-import pytz
 from datetime import datetime
-import time
 import multiprocessing as mp
 from multiprocessing.connection import Connection
+import os
+import pytz
+import time
 
+from app.db import get_session
+from app.db.models import Camera
 from app.settings.local import settings
 
 
@@ -61,7 +61,12 @@ def open_camera(url: str):
         return (camera, "An unknown exception occurred.")
 
 
-def new_cam(id: int, url: str, connection: Connection):
+def record(id: int, url: str, connection: Connection):
+    # Get the camera from the DB to update it as the recording progresses.
+    db_session = next(get_session())
+    py_cam = db_session.get(Camera, id)
+
+    # Create the AV camera
     camera = av.open(url)
     playlist_name = "output.m3u8"
     kwargs = {
@@ -76,10 +81,19 @@ def new_cam(id: int, url: str, connection: Connection):
     }
     hls_opts = kwargs.get("options")
 
+    # Set the HLS url to locate the video segments and create the physical storage location of the segments.
     path, date = get_path(id)
     hls_opts.update({"hls_base_url": f"/cameras/{id}/segments/{date}/"})
     os.makedirs(path)
 
+    # Set the DB camera's active playlist and recording flag
+    py_cam.active_playlist = f"cameras/{id}/{date}/output.m3u8"
+    py_cam.is_recording = True
+    db_session.add(py_cam)
+    db_session.commit()
+    db_session.refresh(py_cam)
+
+    # Open the HLS output container and begin recording data from the camera.
     output_container = av.open(**kwargs, file=f"{path}/{playlist_name}")
     cam_video_stream = camera.streams.video[0]
     out_video_stream = create_video_stream(output_container, cam_video_stream)
@@ -91,6 +105,7 @@ def new_cam(id: int, url: str, connection: Connection):
                 continue
 
             if int(frame.time) % time_to_record == 0 and frame.time > 1:
+                # This playlist has reached it's max size, roll it over and start the next playlist.
                 flush_stream(out_video_stream, output_container)
                 output_container.close()
                 path, date = get_path(id)
@@ -101,11 +116,17 @@ def new_cam(id: int, url: str, connection: Connection):
                     output_container, cam_video_stream
                 )
 
+                # Update the playlist in the DB camera since we are rolling it over.
+                py_cam.active_playlist = f"cameras/{id}/{date}/output.m3u8"
+                db_session.add(py_cam)
+                db_session.commit()
+                db_session.refresh(py_cam)
+
             for packet in out_video_stream.encode(frame):
                 output_container.mux(packet)
         except Exception:
-            output_container.close()
             camera.close()
+            output_container.close()
 
 
 class CameraProcessManager:
@@ -117,22 +138,21 @@ class CameraProcessManager:
     def add_camera(self, id: int, name: str, url: str):
         try:
             if name in self.processes:
-                return (
-                    False,
-                    f"Cannot create process with name: {name} because it already exists!",
-                )
+                return f"Cannot create process with name: {name} because it already exists!"
 
             parent_conn, child_conn = mp.Pipe()
             kwargs = {"id": id, "url": url, "connection": child_conn}
             p = self.context.Process(
-                name=name, target=new_cam, kwargs=kwargs, daemon=True
+                name=name, target=record, kwargs=kwargs, daemon=True
             )
             p.start()
             self.processes[name] = p
             self.connections[name] = parent_conn
-            return (True, "")
+            return None
         except Exception as e:
-            return (False, f"Caught exception trying to start the recording: {e}")
+            if p.is_alive():
+                p.kill()
+            return f"Caught exception trying to start the recording: {e}"
 
 
 # def target(name="DEFAULT NAME"):

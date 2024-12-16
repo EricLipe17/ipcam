@@ -7,6 +7,8 @@ services:
     volumes:
       - .:/backend
     image: backend-api
+    command: >
+      bash -c "alembic upgrade head && python ./app/main.py"
     depends_on:
       - postgres
 

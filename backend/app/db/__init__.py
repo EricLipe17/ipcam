@@ -1,4 +1,4 @@
-import app.db.models
+from app.db.models import *
 from app.settings.local import settings
 
 from fastapi import Depends
@@ -10,10 +10,6 @@ db_config = settings.db_config
 db_url = f"postgresql://{db_config["POSTGRES_USER"]}:{db_config["POSTGRES_PASSWORD"]}@{db_config["POSTGRES_HOST"]}:{db_config["POSTGRES_PORT"]}/{db_config["POSTGRES_DB"]}"
 
 engine = create_engine(db_url)
-
-
-def create_db_and_tables():
-    SQLModel.metadata.create_all(engine)
 
 
 def get_session():

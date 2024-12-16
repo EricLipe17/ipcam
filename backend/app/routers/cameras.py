@@ -1,4 +1,5 @@
-from app.models import AudioSteam, VideoStream, Camera, CameraIn
+from app.db import DBSession
+from app.db.models import AudioStream, VideoStream, Camera, CameraCreate
 from app.dependencies import get_current_active_user
 from app.process_manager import open_camera, get_date
 from app import camera_manager
@@ -6,38 +7,49 @@ from app.settings.local import settings
 
 
 from typing import Annotated, List
-from fastapi import APIRouter, Depends, Header, Response, Request, HTTPException, Form
+from fastapi import (
+    APIRouter,
+    Depends,
+    Header,
+    Response,
+    Request,
+    HTTPException,
+    Form,
+    Query,
+)
 from fastapi.responses import StreamingResponse, FileResponse
-import random
+from sqlmodel import select
 
 router = APIRouter(
     prefix="/cameras",
     tags=["cameras"],
 )
 
-cameras = []
-
 
 @router.get("/")
 async def get_cameras(
+    db_session: DBSession,
+    offset: int = 0,
+    limit: int = Query(default=100, le=100),
     # current_user: Annotated[User, Depends(get_current_active_user)],
 ):
     print("Get cameras endpoint.")
+    cameras = db_session.exec(select(Camera).offset(offset).limit(limit)).all()
     return cameras
 
 
 @router.get("/{id}")
 async def get_camera(
     id: int,
+    db_session: DBSession,
     # current_user: Annotated[User, Depends(get_current_active_user)],
 ):
-    return cameras[id - 1]
+    camera = db_session.get(Camera, id)
+    return camera
 
 
-def get_py_video_stream(id: int, cam_ref: int, av_video_stream):
+def get_py_video_stream(av_video_stream):
     py_video_stream = VideoStream(
-        id=id,
-        camera_ref=cam_ref,
         codec=av_video_stream.codec.name,
         time_base=(
             av_video_stream.time_base.numerator,
@@ -61,16 +73,12 @@ def get_py_video_stream(id: int, cam_ref: int, av_video_stream):
 
 
 @router.post("/add_camera")
-async def add_camera(py_cam_in: CameraIn):
+async def add_camera(py_cam_create: CameraCreate, db_session: DBSession):
     # I dont like the dual return type. Need to change that
 
-    # Check that we can query the camera and collect some metadata
-    py_video_stream = None
-    id = 0
-    if len(cameras):
-        id = cameras[-1].id + 1
     try:
-        av_camera, err_msg = open_camera(py_cam_in.url)
+        # Check that we can query the camera and collect some metadata.
+        av_camera, err_msg = open_camera(py_cam_create.url)
         if err_msg:
             return Response(
                 content=f"Unable to create camera: {err_msg}",
@@ -78,35 +86,44 @@ async def add_camera(py_cam_in: CameraIn):
                 media_type="text/plain",
             )
         av_video_stream = av_camera.streams.video[0]
-        py_video_stream = get_py_video_stream(id, id, av_video_stream)
+        py_video_stream = get_py_video_stream(av_video_stream)
         av_camera.close()
+
+        # Create the camera in the DB so that it's PK exists and can be ref'd by it's Audio/Video streams.
+        py_cam = Camera(
+            **py_cam_create.model_dump(),
+            is_recording=True,
+        )
+        db_session.add(py_cam)
+        db_session.commit()
+        db_session.refresh(py_cam)
+
+        # Start recording the camera's data in a separate process.
+        err = camera_manager.add_camera(
+            py_cam.id, py_cam_create.name, py_cam_create.url
+        )
+        if err:
+            # If we aren't recording, we should delete this camera from DB
+            db_session.delete(py_cam)
+            db_session.commit()
+            return Response(
+                content=f"Unable to start recording for camera at: {py_cam_create.url}. Exception: {err}",
+                status_code=500,
+                media_type="text/plain",
+            )
+
+        # Create the camera's associated streams.
+        py_video_stream.camera_id = py_cam.id
+        db_session.add(py_video_stream)
+        db_session.commit()
+
+        return py_cam
     except Exception as e:
         return Response(
             content=f"Unable to connect to camera due to an exception: {e}.",
             status_code=500,
             media_type="text/plain",
         )
-
-    # Open the camera, and try to start recording it's data in a separate process
-    created, err = camera_manager.add_camera(id, py_cam_in.name, py_cam_in.url)
-    if not created:
-        return Response(
-            content=f"Unable to start recording for camera at: {py_cam_in.url}. Exception: {err}",
-            status_code=500,
-            media_type="text/plain",
-        )
-
-    # Return the pydantic version of the created camera
-    playlist_date = get_date()
-    py_cam = Camera(
-        id=id,
-        **py_cam_in.model_dump(),
-        active_playlist=f"cameras/{id}/{playlist_date}/output.m3u8",
-        video=py_video_stream,
-        is_recording=True,
-    )
-    cameras.append(py_cam)
-    return py_cam
 
 
 @router.get("/{id}/{date}/{playlist}")

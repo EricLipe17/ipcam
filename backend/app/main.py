@@ -1,4 +1,3 @@
-from app.db import create_db_and_tables
 from app.routers import auth, cameras, users
 from app.settings.local import settings
 
@@ -12,7 +11,6 @@ import uvicorn
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     print("Executing startup tasks")
-    create_db_and_tables()
     yield
     print("Executing shutdown tasks")
 
