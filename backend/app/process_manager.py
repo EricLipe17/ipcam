@@ -61,7 +61,7 @@ def open_camera(url: str):
         return (camera, "An unknown exception occurred.")
 
 
-def record(id: int, url: str, connection: Connection):
+def record(id: int, url: str):
     # Get the camera from the DB to update it as the recording progresses.
     db_session = next(get_session())
     py_cam = db_session.get(Camera, id)
@@ -84,7 +84,7 @@ def record(id: int, url: str, connection: Connection):
     # Set the HLS url to locate the video segments and create the physical storage location of the segments.
     path, date = get_path(id)
     hls_opts.update({"hls_base_url": f"/cameras/{id}/segments/{date}/"})
-    os.makedirs(path)
+    os.makedirs(path, exist_ok=True)
 
     # Set the DB camera's active playlist and recording flag
     py_cam.active_playlist = f"cameras/{id}/{date}/output.m3u8"
@@ -110,7 +110,7 @@ def record(id: int, url: str, connection: Connection):
                 output_container.close()
                 path, date = get_path(id)
                 hls_opts.update({"hls_base_url": f"/cameras/{id}/segments/{date}/"})
-                os.makedirs(path)
+                os.makedirs(path, exist_ok=True)
                 output_container = av.open(**kwargs, file=f"{path}/{playlist_name}")
                 out_video_stream = create_video_stream(
                     output_container, cam_video_stream
@@ -124,7 +124,11 @@ def record(id: int, url: str, connection: Connection):
 
             for packet in out_video_stream.encode(frame):
                 output_container.mux(packet)
-        except Exception:
+        except Exception as e:
+            print("\n\nDying in the Record method.\n\n")
+            raise e
+        finally:
+            print("Cleaning up resources in record method.")
             camera.close()
             output_container.close()
 
@@ -139,15 +143,14 @@ class CameraProcessManager:
         try:
             if name in self.processes:
                 return f"Cannot create process with name: {name} because it already exists!"
+            print(f"adding new camera with id: {id}")
 
-            parent_conn, child_conn = mp.Pipe()
-            kwargs = {"id": id, "url": url, "connection": child_conn}
+            kwargs = {"id": id, "url": url}
             p = self.context.Process(
                 name=name, target=record, kwargs=kwargs, daemon=True
             )
             p.start()
             self.processes[name] = p
-            self.connections[name] = parent_conn
             return None
         except Exception as e:
             if p.is_alive():

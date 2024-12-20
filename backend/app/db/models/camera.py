@@ -21,8 +21,7 @@ class VideoStream(StreamBase, table=True):
     width: int = Field()
     sample_aspect_ratio_num: int = Field()
     sample_aspect_ratio_den: int = Field()
-    framerate_num: int = Field()
-    framerate_den: int = Field()
+    framerate: int = Field()
     gop_size: int = Field()
     pix_fmt: str = Field()
 

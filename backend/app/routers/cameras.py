@@ -51,22 +51,16 @@ async def get_camera(
 def get_py_video_stream(av_video_stream):
     py_video_stream = VideoStream(
         codec=av_video_stream.codec.name,
-        time_base=(
-            av_video_stream.time_base.numerator,
-            av_video_stream.time_base.denominator,
-        ),
+        time_base_num=av_video_stream.time_base.numerator,
+        time_base_den=av_video_stream.time_base.denominator,
         height=av_video_stream.height,
         width=av_video_stream.width,
-        sample_aspect_ratio=(
-            av_video_stream.sample_aspect_ratio.numerator,
-            av_video_stream.sample_aspect_ratio.denominator,
-        ),
+        sample_aspect_ratio_num=av_video_stream.sample_aspect_ratio.numerator,
+        sample_aspect_ratio_den=av_video_stream.sample_aspect_ratio.denominator,
         bit_rate=av_video_stream.bit_rate,
-        framerate=(
-            av_video_stream.codec_context.framerate.numerator,
-            av_video_stream.codec_context.framerate.denominator,
-        ),
-        gop_size=av_video_stream.codec_context.framerate * 10,
+        framerate=av_video_stream.codec_context.framerate.numerator
+        // av_video_stream.codec_context.framerate.denominator,
+        gop_size=av_video_stream.codec_context.framerate.numerator * 10,
         pix_fmt=av_video_stream.pix_fmt,
     )
     return py_video_stream
