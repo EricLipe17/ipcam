@@ -35,7 +35,7 @@ class CameraBase(SQLModel):
 class Camera(CameraBase, table=True):
     id: int | None = Field(default=None, primary_key=True, index=True)
     active_playlist: str | None = Field(default=None)
-    segment_length: int = Field(default=10)
+    segment_length: int = Field(default=2)
     is_recording: bool = Field(default=False)
 
 

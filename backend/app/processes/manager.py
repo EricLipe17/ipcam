@@ -74,7 +74,7 @@ def record(id: int, url: str, connection: Connection):
         "mode": "w",
         "format": "hls",
         "options": {
-            "hls_time": "10",
+            "hls_time": "2",
             "hls_segment_type": "mpegts",
             "hls_playlist_type": "event",
             "hls_flags": "append_list",
