@@ -12,6 +12,9 @@ from app.db.models import Camera
 from app.settings.local import settings
 
 
+mp.set_start_method("spawn")
+
+
 def flush_stream(stream, output):
     for packet in stream.encode():
         output.mux(packet)
