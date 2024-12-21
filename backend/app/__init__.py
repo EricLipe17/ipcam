@@ -1,3 +1,3 @@
-from app.process_manager import CameraProcessManager
+from app.processes import CameraProcessManager
 
-camera_manager = CameraProcessManager()
+process_manager = CameraProcessManager()

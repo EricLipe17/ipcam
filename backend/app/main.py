@@ -1,4 +1,4 @@
-from app import camera_manager
+from app import process_manager
 from app.routers import auth, cameras, users
 from app.settings.local import settings
 
@@ -13,7 +13,7 @@ import uvicorn
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     print("Executing startup tasks")
-    asyncio.create_task(camera_manager.poll_cameras())
+    asyncio.create_task(process_manager.poll_cameras())
     yield
     print("Executing shutdown tasks")
 

@@ -1,8 +1,8 @@
 from app.db import DBSession
 from app.db.models import AudioStream, VideoStream, Camera, CameraCreate
 from app.dependencies import get_current_active_user
-from app.process_manager import open_camera, get_date
-from app import camera_manager
+from app.processes import open_camera, get_date
+from app import process_manager
 from app.settings.local import settings
 
 
@@ -93,7 +93,7 @@ async def add_camera(py_cam_create: CameraCreate, db_session: DBSession):
         db_session.refresh(py_cam)
 
         # Start recording the camera's data in a separate process.
-        err = camera_manager.add_camera(
+        err = process_manager.add_camera(
             py_cam.id, py_cam_create.name, py_cam_create.url
         )
         if err:
