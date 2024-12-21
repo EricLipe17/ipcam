@@ -64,7 +64,7 @@ def open_camera(url: str):
 def record(id: int, url: str):
     # Get the camera from the DB to update it as the recording progresses.
     db_session = next(get_session())
-    py_cam = db_session.get(Camera, id)
+    db_cam = db_session.get(Camera, id)
 
     # Create the AV camera
     camera = av.open(url)
@@ -87,11 +87,9 @@ def record(id: int, url: str):
     os.makedirs(path, exist_ok=True)
 
     # Set the DB camera's active playlist and recording flag
-    py_cam.active_playlist = f"cameras/{id}/{date}/output.m3u8"
-    py_cam.is_recording = True
-    db_session.add(py_cam)
+    db_cam.active_playlist = f"cameras/{id}/{date}/output.m3u8"
+    db_cam.is_recording = True
     db_session.commit()
-    db_session.refresh(py_cam)
 
     # Open the HLS output container and begin recording data from the camera.
     output_container = av.open(**kwargs, file=f"{path}/{playlist_name}")
@@ -117,20 +115,19 @@ def record(id: int, url: str):
                 )
 
                 # Update the playlist in the DB camera since we are rolling it over.
-                py_cam.active_playlist = f"cameras/{id}/{date}/output.m3u8"
-                db_session.add(py_cam)
+                db_cam = db_session.get(Camera, id)
+                db_cam.active_playlist = f"cameras/{id}/{date}/output.m3u8"
                 db_session.commit()
-                db_session.refresh(py_cam)
 
             for packet in out_video_stream.encode(frame):
                 output_container.mux(packet)
         except Exception as e:
-            print("\n\nDying in the Record method.\n\n")
-            raise e
-        finally:
-            print("Cleaning up resources in record method.")
-            camera.close()
-            output_container.close()
+            with open("record.log", "a") as log:
+                log.write(f"{str(e)}\n")
+                log.write("Cleaning up resources in record method.444\n\n\n")
+                camera.close()
+                output_container.close()
+                exit(1)
 
 
 class CameraProcessManager:
@@ -156,21 +153,3 @@ class CameraProcessManager:
             if p.is_alive():
                 p.kill()
             return f"Caught exception trying to start the recording: {e}"
-
-
-# def target(name="DEFAULT NAME"):
-#   import os
-#   print(f"My name is: {name}, My ID is: {os.getpid()}")
-
-# def target2():
-#   raise Exception("I died on purpose")
-
-# if __name__ == '__main__':
-#   pm = ProcessManager()
-#   pm.add_process("t1", target=target, kwargs={'name': "t1"})
-#   pm.add_process("t2", target=target, kwargs={})
-#   pm.add_process("t3", target=target2, kwargs={})
-
-#   for p in pm.processes.values():
-#     print(f"{p.name} is alive: {p.is_alive()}")
-#     p.join()

@@ -16,7 +16,7 @@ const Cameras = () => {
     <div>
       <AddCameraModal />
       <br />
-      {/* {cams.map((cam_config) => <Camera config={cam_config}/>)} */}
+      {cams.map((cam_config) => <Camera config={cam_config} />)}
     </div>
   );
 }
