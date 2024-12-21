@@ -1,3 +1,4 @@
+import asyncio
 import av
 from datetime import datetime
 import multiprocessing as mp
@@ -61,7 +62,7 @@ def open_camera(url: str):
         return (camera, "An unknown exception occurred.")
 
 
-def record(id: int, url: str):
+def record(id: int, url: str, connection: Connection):
     # Get the camera from the DB to update it as the recording progresses.
     db_session = next(get_session())
     db_cam = db_session.get(Camera, id)
@@ -97,6 +98,7 @@ def record(id: int, url: str):
     out_video_stream = create_video_stream(output_container, cam_video_stream)
 
     time_to_record = seconds_until_midnight()
+    connection.send("Begining recording.")
     for frame in camera.decode(cam_video_stream):
         try:
             if frame.dts is None:
@@ -122,6 +124,7 @@ def record(id: int, url: str):
             for packet in out_video_stream.encode(frame):
                 output_container.mux(packet)
         except Exception as e:
+            connection.send(f"Camera died with the following exception: {str(e)}")
             with open("record.log", "a") as log:
                 log.write(f"{str(e)}\n")
                 log.write("Cleaning up resources in record method.444\n\n\n")
@@ -135,21 +138,39 @@ class CameraProcessManager:
         self.context = mp.get_context("spawn")
         self.processes = dict()
         self.connections = dict()
+        self.wait_for = 0.1
 
     def add_camera(self, id: int, name: str, url: str):
+        p = None
         try:
             if name in self.processes:
                 return f"Cannot create process with name: {name} because it already exists!"
             print(f"adding new camera with id: {id}")
 
-            kwargs = {"id": id, "url": url}
+            parent_conn, child_conn = mp.Pipe()
+            kwargs = {"id": id, "url": url, "connection": child_conn}
             p = self.context.Process(
                 name=name, target=record, kwargs=kwargs, daemon=True
             )
             p.start()
             self.processes[name] = p
+            self.connections[name] = parent_conn
             return None
         except Exception as e:
-            if p.is_alive():
+            if p and p.is_alive():
                 p.kill()
+            print(e)
             return f"Caught exception trying to start the recording: {e}"
+
+    async def poll_cameras(self):
+        print("Inside poll_cameras")
+        log = open("record.log", "a")
+        while True:
+            for camera, connection in self.connections.items():
+                if connection.poll():
+                    obj = connection.recv()
+                    print(f"Printing to console: {obj}")
+                    log.write(f"Received message from {camera}. ")
+                    log.write(f"{obj}\n")
+                    log.flush()
+            await asyncio.sleep(self.wait_for)

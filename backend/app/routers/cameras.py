@@ -113,6 +113,7 @@ async def add_camera(py_cam_create: CameraCreate, db_session: DBSession):
 
         return py_cam
     except Exception as e:
+        print(e)
         return Response(
             content=f"Unable to connect to camera due to an exception: {e}.",
             status_code=500,

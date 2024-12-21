@@ -1,6 +1,8 @@
+from app import camera_manager
 from app.routers import auth, cameras, users
 from app.settings.local import settings
 
+import asyncio
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -11,6 +13,7 @@ import uvicorn
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     print("Executing startup tasks")
+    asyncio.create_task(camera_manager.poll_cameras())
     yield
     print("Executing shutdown tasks")
 

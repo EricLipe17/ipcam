@@ -4,6 +4,7 @@ __pycache__
 cameras
 test.py
 *.mp4
+*.log
 
 .DS_Store
 .env
