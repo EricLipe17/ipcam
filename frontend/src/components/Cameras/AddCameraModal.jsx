@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import ReactModal from 'react-modal';
+import { useNavigate } from "react-router-dom";
 
 function AddCameraModal() {
+  const navigate = useNavigate();
   const [showModal, setShowModal] = useState(false);
   const [errors, setErrors] = useState({});
   const [addError, setAddError] = useState("");
@@ -66,6 +68,8 @@ function AddCameraModal() {
         event.preventDefault()
         return false
       }
+      navigate("/cameras")
+      setShowModal(false)
       return true
     } else {
       event.preventDefault();
