@@ -1,10 +1,12 @@
 from app.db import get_session
 from app.db.models import Camera
+from app.processes.messages import Message, MessageType
 from app.settings.local import settings
 
 import av
 from av.container.input import InputContainer
 from datetime import datetime
+import logging
 from multiprocessing import Process
 from multiprocessing.connection import Connection
 import os
@@ -40,6 +42,7 @@ class CameraProcess(Process):
 
     @staticmethod
     def probe_url(url: str):
+        ## TODO: Make this actuall return the audio/video stream classes instead of the av object.
         camera = None
         try:
             camera = av.open(url)
@@ -117,7 +120,13 @@ class CameraProcess(Process):
         out_video_stream = self.get_video_stream(output_container, cam_video_stream)
 
         time_to_record = self.seconds_until_midnight()
-        self.connection.send("Begining recording.")
+        self.connection.send(
+            Message(
+                process_id=self.id,
+                process_name=self.name,
+                message="Begining recording.",
+            )
+        )
         for frame in self.camera.decode(cam_video_stream):
             try:
                 if frame.dts is None:
@@ -125,6 +134,13 @@ class CameraProcess(Process):
 
                 if int(frame.time) % time_to_record == 0 and frame.time > 1:
                     # This playlist has reached it's max size, roll it over and start the next playlist.
+                    self.connection.send(
+                        Message(
+                            process_id=self.id,
+                            process_name=self.name,
+                            message="Playlist max size reaached. Rolling over to a new playlist.",
+                        )
+                    )
                     self.flush_stream(out_video_stream, output_container)
                     output_container.close()
                     path = self.get_path()
@@ -148,9 +164,11 @@ class CameraProcess(Process):
                 self.camera.close()
                 output_container.close()
                 self.connection.send(
-                    f"Camera died with the following exception: {str(e)}"
+                    Message(
+                        process_id=self.id,
+                        process_name=self.name,
+                        message=f"Recording encountered an exception! Camera connection has been closed. Exception: {e}",
+                        m_type=MessageType.Error,
+                        level=logging.ERROR,
+                    )
                 )
-                with open("record.log", "a") as log:
-                    log.write(f"{str(e)}\n")
-                    log.write("Cleaning up resources in record method.444\n\n\n")
-                    exit(1)
