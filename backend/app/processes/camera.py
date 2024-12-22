@@ -1,5 +1,5 @@
 from app.db import get_session
-from app.db.models import CameraProcess
+from app.db.models import Camera
 from app.settings.local import settings
 
 import av
@@ -94,7 +94,7 @@ class CameraProcess(Process):
 
         # Get the camera from the DB to update it as the recording progresses.
         db_session = next(get_session())
-        db_cam = db_session.get(CameraProcess, self.id)
+        db_cam = db_session.get(Camera, self.id)
 
         # Create the AV camera
         hls_opts = self.output_kwargs.get("options")
@@ -138,7 +138,7 @@ class CameraProcess(Process):
                     )
 
                     # Update the playlist in the DB camera since we are rolling it over.
-                    db_cam = db_session.get(CameraProcess, self.id)
+                    db_cam = db_session.get(Camera, self.id)
                     db_cam.active_playlist = self.next_playlist()
                     db_session.commit()
 

@@ -15,9 +15,9 @@ class MessageType(Enum):
 class Message:
     process_id: int
     process_name: str
-    m_type: MessageType
+    m_type: MessageType = MessageType.Log
+    message: str = ""
     level: int = logging.INFO
-    message: str
 
     def handle(self):
         logger.log(

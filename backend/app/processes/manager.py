@@ -4,7 +4,8 @@ import multiprocessing as mp
 from multiprocessing.connection import Connection
 from typing import Dict
 
-from app.processes import CameraProcess, MessageType
+from app.processes import CameraProcess
+from app.processes.messages import MessageType
 
 logger = logging.getLogger(__name__)
 
