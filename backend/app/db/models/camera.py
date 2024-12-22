@@ -41,7 +41,3 @@ class Camera(CameraBase, table=True):
 
 class CameraCreate(CameraBase):
     pass
-
-
-class CameraPublic(Camera):
-    pass

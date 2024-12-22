@@ -26,7 +26,7 @@ router = APIRouter(
 )
 
 
-@router.get("/")
+@router.get("/", response_model=List[Camera])
 async def get_cameras(
     db_session: DBSession,
     offset: int = 0,
@@ -38,7 +38,7 @@ async def get_cameras(
     return cameras
 
 
-@router.get("/{id}")
+@router.get("/{id}", response_model=Camera)
 async def get_camera(
     id: int,
     db_session: DBSession,
@@ -68,7 +68,7 @@ def get_py_video_stream(av_video_stream):
     return py_video_stream
 
 
-@router.post("/add_camera")
+@router.post("/add_camera", response_model=Camera)
 async def add_camera(py_cam_create: CameraCreate, db_session: DBSession):
     # I dont like the dual return type. Need to change that
 
@@ -109,7 +109,6 @@ async def add_camera(py_cam_create: CameraCreate, db_session: DBSession):
         # Create the camera's associated streams.
         py_video_stream.camera_id = py_cam.id
         db_session.add(py_video_stream)
-        db_session.commit()
 
         return py_cam
     except Exception as e:
