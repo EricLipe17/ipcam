@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 44b7862a42d0
+Revision ID: a17914564c42
 Revises: 
-Create Date: 2024-12-20 22:52:55.322979
+Create Date: 2024-12-22 01:33:51.756085
 
 """
 from typing import Sequence, Union
@@ -13,7 +13,7 @@ import sqlmodel
 
 
 # revision identifiers, used by Alembic.
-revision: str = '44b7862a42d0'
+revision: str = 'a17914564c42'
 down_revision: Union[str, None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -32,7 +32,7 @@ def upgrade() -> None:
     sa.PrimaryKeyConstraint('id')
     )
     op.create_index(op.f('ix_camera_id'), 'camera', ['id'], unique=False)
-    op.create_index(op.f('ix_camera_name'), 'camera', ['name'], unique=True)
+    op.create_index(op.f('ix_camera_name'), 'camera', ['name'], unique=False)
     op.create_table('audiostream',
     sa.Column('camera_id', sa.Integer(), nullable=False),
     sa.Column('codec', sqlmodel.sql.sqltypes.AutoString(), nullable=False),

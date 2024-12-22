@@ -3,32 +3,29 @@ from app.db.models import Camera
 from app.settings.local import settings
 
 import av
+from av.container.input import InputContainer
 from datetime import datetime
 from multiprocessing import Process
+from multiprocessing.connection import Connection
 import os
 import pytz
 import time
 
 
-class Camera(Process):
-    def __init__(
-        self,
-        url,
-        id,
-        connection,
-        group=None,
-        target=None,
-        name=None,
-        args=...,
-        kwargs=...,
-        *,
-        daemon=None,
-    ):
-        super().__init__(group, target, name, args, kwargs, daemon=daemon)
+class CameraProcess(Process):
+    url: str
+    id: int
+    connection: Connection
+    camera: InputContainer
+    playlist_name: str
+    output_kwargs: dict
+
+    def __init__(self, url: str, id: int, connection: Connection, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.url = url
         self.id = id
         self.connection = connection
-        self.camera = av.open(self.url)
+        self.camera = None
         self.playlist_name = "output.m3u8"
         self.output_kwargs = {
             "mode": "w",
@@ -40,6 +37,19 @@ class Camera(Process):
                 "hls_flags": "append_list",
             },
         }
+
+    @staticmethod
+    def probe_url(url: str):
+        camera = None
+        try:
+            camera = av.open(url)
+            return (camera, "")
+        except av.OSError:
+            return (camera, "Input/output error. The provided url could not be opened.")
+        except av.FFmpegError as e:
+            return (camera, e.strerror)
+        except Exception as e:
+            return (camera, "An unknown exception occurred.")
 
     def flush_stream(self, stream, output):
         for packet in stream.encode():
@@ -79,6 +89,9 @@ class Camera(Process):
         return f"cameras/{self.id}/{self.get_date()}/output.m3u8"
 
     def run(self):
+        # Create av camera
+        self.camera = av.open(self.url)
+
         # Get the camera from the DB to update it as the recording progresses.
         db_session = next(get_session())
         db_cam = db_session.get(Camera, self.id)

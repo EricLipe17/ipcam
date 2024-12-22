@@ -1,7 +1,7 @@
 from app.db import DBSession
 from app.db.models import AudioStream, VideoStream, Camera, CameraCreate
 from app.dependencies import get_current_active_user
-from app.processes import open_camera, get_date
+from app.processes.camera import CameraProcess
 from app import process_manager
 from app.settings.local import settings
 
@@ -45,6 +45,8 @@ async def get_camera(
     # current_user: Annotated[User, Depends(get_current_active_user)],
 ):
     camera = db_session.get(Camera, id)
+    if not camera:
+        raise HTTPException(detail=f"Camera with id:{id} not found.", status_code=404)
     return camera
 
 
@@ -72,12 +74,11 @@ async def add_camera(py_cam_create: CameraCreate, db_session: DBSession):
 
     try:
         # Check that we can query the camera and collect some metadata.
-        av_camera, err_msg = open_camera(py_cam_create.url)
+        av_camera, err_msg = CameraProcess.probe_url(py_cam_create.url)
         if err_msg:
-            return Response(
-                content=f"Unable to create camera: {err_msg}",
+            raise HTTPException(
+                detail=f"Unable to create camera: {err_msg}",
                 status_code=400,
-                media_type="text/plain",
             )
         av_video_stream = av_camera.streams.video[0]
         py_video_stream = get_py_video_stream(av_video_stream)
@@ -100,10 +101,9 @@ async def add_camera(py_cam_create: CameraCreate, db_session: DBSession):
             # If we aren't recording, we should delete this camera from DB
             db_session.delete(py_cam)
             db_session.commit()
-            return Response(
-                content=f"Unable to start recording for camera at: {py_cam_create.url}. Exception: {err}",
+            raise HTTPException(
+                detail=f"Unable to start recording for camera at: {py_cam_create.url}. Exception: {err}",
                 status_code=500,
-                media_type="text/plain",
             )
 
         # Create the camera's associated streams.
@@ -114,10 +114,9 @@ async def add_camera(py_cam_create: CameraCreate, db_session: DBSession):
         return py_cam
     except Exception as e:
         print(e)
-        return Response(
-            content=f"Unable to connect to camera due to an exception: {e}.",
+        raise HTTPException(
+            detail=f"Unable to connect to camera due to an exception: {e}.",
             status_code=500,
-            media_type="text/plain",
         )
 
 

@@ -27,7 +27,7 @@ class VideoStream(StreamBase, table=True):
 
 
 class CameraBase(SQLModel):
-    name: str = Field(index=True, unique=True)
+    name: str = Field(index=True)
     url: str = Field()
     location: str | None = Field(default=None)
 
