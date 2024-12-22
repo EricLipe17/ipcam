@@ -54,17 +54,17 @@ class CameraProcess(Process):
         except Exception as e:
             return (camera, "An unknown exception occurred.")
 
-    def flush_stream(self, stream, output):
+    def _flush_stream(self, stream, output):
         for packet in stream.encode():
             output.mux(packet)
 
-    def get_date(self):
+    def _get_date(self):
         return f"{datetime.now().strftime("%Y-%m-%d")}"
 
-    def get_path(self):
-        return f"{settings.storage_dir}/{self.id}/{self.get_date()}"
+    def _get_path(self):
+        return f"{settings.storage_dir}/{self.id}/{self._get_date()}"
 
-    def get_video_stream(self, output_container, input_video_stream):
+    def _get_video_stream(self, output_container, input_video_stream):
         stream = output_container.add_stream(codec_name="h264", options={})
         # The options are required for transcoding to work
         stream.height = input_video_stream.height
@@ -76,7 +76,7 @@ class CameraProcess(Process):
         stream.time_base = input_video_stream.time_base
         return stream
 
-    def seconds_until_midnight(self):
+    def _seconds_until_midnight(self):
         """Calculates the time until midnight in the specified timezone."""
         # All timezones: pytz.all_timezones
         tz = pytz.timezone(time.tzname[time.daylight])
@@ -85,11 +85,11 @@ class CameraProcess(Process):
         time_left = midnight - now
         return time_left.seconds
 
-    def get_segment_url(self):
-        return f"/cameras/{self.id}/segments/{self.get_date()}/"
+    def _get_segment_url(self):
+        return f"/cameras/{self.id}/segments/{self._get_date()}/"
 
-    def next_playlist(self):
-        return f"cameras/{self.id}/{self.get_date()}/output.m3u8"
+    def _next_playlist(self):
+        return f"cameras/{self.id}/{self._get_date()}/output.m3u8"
 
     def run(self):
         # Create av camera
@@ -103,12 +103,12 @@ class CameraProcess(Process):
         hls_opts = self.output_kwargs.get("options")
 
         # Set the HLS url to locate the video segments and create the physical storage location of the segments.
-        path = self.get_path()
-        hls_opts.update({"hls_base_url": self.get_segment_url()})
+        path = self._get_path()
+        hls_opts.update({"hls_base_url": self._get_segment_url()})
         os.makedirs(path, exist_ok=True)
 
         # Set the DB camera's active playlist and recording flag
-        db_cam.active_playlist = self.next_playlist()
+        db_cam.active_playlist = self._next_playlist()
         db_cam.is_recording = True
         db_session.commit()
 
@@ -117,9 +117,9 @@ class CameraProcess(Process):
             **self.output_kwargs, file=f"{path}/{self.playlist_name}"
         )
         cam_video_stream = self.camera.streams.video[0]
-        out_video_stream = self.get_video_stream(output_container, cam_video_stream)
+        out_video_stream = self._get_video_stream(output_container, cam_video_stream)
 
-        time_to_record = self.seconds_until_midnight()
+        time_to_record = self._seconds_until_midnight()
         self.connection.send(
             Message(
                 process_id=self.id,
@@ -141,21 +141,21 @@ class CameraProcess(Process):
                             message="Playlist max size reaached. Rolling over to a new playlist.",
                         )
                     )
-                    self.flush_stream(out_video_stream, output_container)
+                    self._flush_stream(out_video_stream, output_container)
                     output_container.close()
-                    path = self.get_path()
-                    hls_opts.update({"hls_base_url": self.get_segment_url()})
+                    path = self._get_path()
+                    hls_opts.update({"hls_base_url": self._get_segment_url()})
                     os.makedirs(path, exist_ok=True)
                     output_container = av.open(
                         **self.output_kwargs, file=f"{path}/{self.playlist_name}"
                     )
-                    out_video_stream = self.get_video_stream(
+                    out_video_stream = self._get_video_stream(
                         output_container, cam_video_stream
                     )
 
                     # Update the playlist in the DB camera since we are rolling it over.
                     db_cam = db_session.get(Camera, self.id)
-                    db_cam.active_playlist = self.next_playlist()
+                    db_cam.active_playlist = self._next_playlist()
                     db_session.commit()
 
                 for packet in out_video_stream.encode(frame):
