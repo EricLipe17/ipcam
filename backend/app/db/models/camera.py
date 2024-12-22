@@ -32,7 +32,7 @@ class CameraBase(SQLModel):
     location: str | None = Field(default=None)
 
 
-class Camera(CameraBase, table=True):
+class CameraProcess(CameraBase, table=True):
     id: int | None = Field(default=None, primary_key=True, index=True)
     active_playlist: str | None = Field(default=None)
     segment_length: int = Field(default=2)
@@ -43,5 +43,5 @@ class CameraCreate(CameraBase):
     pass
 
 
-class CameraPublic(Camera):
+class CameraPublic(CameraProcess):
     pass
