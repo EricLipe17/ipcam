@@ -1,9 +1,7 @@
 import React, { useState } from 'react';
 import ReactModal from 'react-modal';
-import { useNavigate } from "react-router-dom";
 
-function AddCameraModal({ cameras, setCameras }) {
-  const navigate = useNavigate();
+function AddCameraModal({ setCamAdded }) {
   const [showModal, setShowModal] = useState(false);
   const [errors, setErrors] = useState({});
   const [addError, setAddError] = useState("");
@@ -54,7 +52,6 @@ function AddCameraModal({ cameras, setCameras }) {
 
   const handleAdd = async (event) => {
     if (isValid()) {
-      console.log("Making request")
       const response = await fetch('http://localhost:8000/cameras/add_camera', {
         method: "POST",
         headers: {
@@ -62,16 +59,15 @@ function AddCameraModal({ cameras, setCameras }) {
         },
         body: JSON.stringify(inputs),
       })
+      const body = response.json()
       if (!response.ok) {
-        console.log(response)
-        setAddError(response)
+        console.log(body)
+        setAddError(body)
         event.preventDefault()
         return false
       }
-      const camera = await response.json()
-      cameras.push(camera)
       setShowModal(false)
-      setCameras(cameras)
+      setCamAdded(true)
       return true
     } else {
       event.preventDefault();
@@ -94,8 +90,7 @@ function AddCameraModal({ cameras, setCameras }) {
   return (
     <div>
       <button onClick={handleShowModal}>Add Camera</button>
-
-      <ReactModal isOpen={showModal} onRequestClose={handleHideModal} ariaHideApp={false} style={customStyles}>
+      <ReactModal isOpen={showModal} ariaHideApp={false} style={customStyles}>
         <h2>Add Camera</h2>
         <label>
           Name:
@@ -116,6 +111,7 @@ function AddCameraModal({ cameras, setCameras }) {
         <br />
         <button type="submit" onClick={handleAdd}>Add</button>
         {addError && <span className="error">{addError}</span>}
+        <button onClick={handleHideModal}>Cancel</button>
       </ReactModal>
     </div>
   );

@@ -3,20 +3,25 @@ import Camera from './Camera';
 import { useEffect, useState } from 'react'
 
 const Cameras = () => {
-  const [cams, setCams] = useState([])
+  const [cameras, setCameras] = useState([])
+  const [camAdded, setCamAdded] = useState(false)
 
   useEffect(() => {
-    fetch("http://127.0.0.1:8000/cameras/")
-      .then(response => response.json())
-      .then(data => setCams(data))
-      .catch(error => console.error('Error:', error));
-  }, []);
+    const fetchCameras = () => {
+      fetch("http://127.0.0.1:8000/cameras/").then(response => response.json())
+        .then(cameras => setCameras(cameras))
+        .catch(error => console.error('Error:', error));
+    }
+    if (camAdded) {
+      fetchCameras()
+    }
+  }, [camAdded]);
 
   return (
     <div>
-      <AddCameraModal cameras={cams} setCameras={setCams} />
+      <AddCameraModal setCamAdded={setCamAdded} />
       <br />
-      {cams.map((cam_config) => <Camera config={cam_config} />)}
+      {cameras.map((cam_config) => <Camera config={cam_config} />)}
     </div>
   );
 }
