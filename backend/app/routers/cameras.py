@@ -82,6 +82,9 @@ async def add_camera(py_cam_create: CameraCreate, db_session: DBSession):
             **py_cam_create.model_dump(),
             is_recording=False,
         )
+        py_cam.video_streams.append(py_video_stream)
+        if py_audio_stream is not None:
+            py_cam.audio_streams.append(py_audio_stream)
         db_session.add(py_cam)
         db_session.commit()
         db_session.refresh(py_cam)
@@ -98,12 +101,6 @@ async def add_camera(py_cam_create: CameraCreate, db_session: DBSession):
                 detail=f"Unable to start recording for camera at: {py_cam_create.url}. Exception: {err}",
                 status_code=500,
             )
-
-        # Create the camera's associated streams.
-        py_video_stream.camera_id = py_cam.id
-        db_session.add(py_video_stream)
-        db_session.commit()
-        db_session.refresh(py_cam)
 
         return py_cam
     except Exception as e:
