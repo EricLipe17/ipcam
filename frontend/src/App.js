@@ -23,5 +23,5 @@ class App extends Component {
       </HashRouter>
     );
   }
-  }
-  export default App;
+}
+export default App;

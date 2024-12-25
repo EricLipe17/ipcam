@@ -62,7 +62,7 @@ class CameraProcess(Process):
         return f"{datetime.now().strftime("%Y-%m-%d")}"
 
     def _get_path(self):
-        return f"{settings.storage_dir}/{self.id}/{self._get_date()}"
+        return f"{settings.storage_dir}/cameras/{self.id}/{self._get_date()}"
 
     def _get_video_stream(self, output_container, input_video_stream):
         stream = output_container.add_stream(codec_name="h264", options={})

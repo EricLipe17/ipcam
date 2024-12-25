@@ -5,8 +5,8 @@ from app.processes.camera import CameraProcess
 from app import process_manager
 from app.settings.local import settings
 
-
 import logging
+import os
 from typing import Annotated, List
 from fastapi import (
     APIRouter,
@@ -49,6 +49,20 @@ async def get_camera(
     camera = db_session.get(Camera, id)
     if not camera:
         raise HTTPException(detail=f"Camera with id:{id} not found.", status_code=404)
+    return camera
+
+
+@router.get("/{id}/ready", response_model=Camera)
+async def camera_ready(id: int, db_session: DBSession):
+    camera = db_session.get(Camera, id)
+    if not camera:
+        raise HTTPException(detail=f"Camera with id:{id} not found.", status_code=404)
+
+    if camera.active_playlist is None and not os.path.exists(
+        f"{settings.storage_dir}/{camera.active_playlist}"
+    ):
+        raise HTTPException(detail="Not ready yet.", status_code=204)
+
     return camera
 
 
@@ -130,7 +144,7 @@ async def add_camera(py_cam_create: CameraCreate, db_session: DBSession):
 @router.get("/{id}/{date}/{playlist}")
 async def get_playlist(id: str, date: str, playlist: str):
     return FileResponse(
-        path=f"{settings.storage_dir}/{id}/{date}/{playlist}", filename=playlist
+        path=f"{settings.storage_dir}/cameras/{id}/{date}/{playlist}", filename=playlist
     )
 
 
@@ -138,5 +152,5 @@ async def get_playlist(id: str, date: str, playlist: str):
 async def get_segment(id: str, date: str, segment: str):
     print(f"Segment: {segment}")
     return FileResponse(
-        path=f"{settings.storage_dir}/{id}/{date}/{segment}", filename=segment
+        path=f"{settings.storage_dir}/cameras/{id}/{date}/{segment}", filename=segment
     )

@@ -8,7 +8,7 @@ const Cameras = () => {
 
   useEffect(() => {
     const fetchCameras = () => {
-      fetch("http://127.0.0.1:8000/cameras/").then(response => response.json())
+      fetch("http://localhost:8000/cameras/").then(response => response.json())
         .then(cameras => setCameras(cameras))
         .catch(error => console.error('Error:', error));
     }
@@ -19,7 +19,11 @@ const Cameras = () => {
     <div>
       <AddCameraModal setCamAdded={setCamAdded} />
       <br />
-      {cameras.map((cam_config) => <Camera config={cam_config} />)}
+      {cameras.map((cameraConfig) => {
+        return (
+          <Camera cameraConfig={cameraConfig} />
+        )
+      })}
     </div>
   );
 }

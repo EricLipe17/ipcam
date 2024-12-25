@@ -1,9 +1,41 @@
 import ReactPlayer from 'react-player/lazy'
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
-const Camera = ({ config }) => {
+const Camera = ({ cameraConfig }) => {
+  console.log(JSON.stringify(cameraConfig))
   const [playing, setPlaying] = useState(true);
-  const [url, setUrl] = useState(`http://127.0.0.1:8000/${config.active_playlist}`);
+  const [config, setConfig] = useState(cameraConfig)
+  const [url, setUrl] = useState(`http://localhost:8000/${config.active_playlist}`);
+  const [isLoading, setIsLoading] = useState(true);
+
+  async function fetchCameraUntilReady(config) {
+    let retries = 0
+    let maxRetries = 5
+    while (retries < maxRetries) {
+      const response = await fetch(`http://localhost:8000/cameras/${config.id}/ready`)
+      if (!response.ok || response.status !== 200) {
+        retries++
+        await new Promise(resolve => setTimeout(resolve, 2000))
+      } else {
+        const camera = await response.json()
+        setConfig(camera)
+        setUrl(`http://localhost:8000/${camera.active_playlist}`)
+        setIsLoading(false)
+        break
+      }
+    }
+    // TODO: Add error handling if we hit max retries
+  }
+
+  useEffect(() => {
+    if (config.active_playlist === null) {
+      fetchCameraUntilReady(config)
+    }
+  })
+  console.log(JSON.stringify(config))
+  if (isLoading) {
+    return <div>Loading Stream...</div>
+  }
 
   return (
     <div>
@@ -26,9 +58,9 @@ const Camera = ({ config }) => {
         onPause={() => setPlaying(false)}
         onEnded={() => {
           // Use this to get the next playlist to continue the livestream
-          fetch(`http://127.0.0.1:8000/cameras/${config.id}/`).then(response => response.json())
+          fetch(`http://localhost:8000/cameras/${cameraConfig.id}/`).then(response => response.json())
             .then(camera => {
-              setUrl(`http://127.0.0.1:8000/${camera.active_playlist}`)
+              setUrl(`http://localhost:8000/${camera.active_playlist}`)
               setPlaying(true)
             })
         }}

@@ -59,13 +59,12 @@ function AddCameraModal({ setCamAdded }) {
         },
         body: JSON.stringify(inputs),
       })
-      const body = response.json()
       if (!response.ok) {
-        console.log(body)
-        setAddError(body)
+        setAddError("Encountered error trying to add camera.")
         event.preventDefault()
         return false
       }
+
       setShowModal(false)
       setCamAdded(true)
       return true
