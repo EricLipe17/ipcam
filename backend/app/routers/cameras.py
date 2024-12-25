@@ -11,14 +11,10 @@ from typing import Annotated, List
 from fastapi import (
     APIRouter,
     Depends,
-    Header,
-    Response,
-    Request,
     HTTPException,
-    Form,
     Query,
 )
-from fastapi.responses import StreamingResponse, FileResponse
+from fastapi.responses import FileResponse
 from sqlmodel import select
 
 logger = logging.getLogger(__name__)
@@ -66,39 +62,20 @@ async def camera_ready(id: int, db_session: DBSession):
     return camera
 
 
-def get_py_video_stream(av_video_stream):
-    py_video_stream = VideoStream(
-        codec=av_video_stream.codec.name,
-        time_base_num=av_video_stream.time_base.numerator,
-        time_base_den=av_video_stream.time_base.denominator,
-        height=av_video_stream.height,
-        width=av_video_stream.width,
-        sample_aspect_ratio_num=av_video_stream.sample_aspect_ratio.numerator,
-        sample_aspect_ratio_den=av_video_stream.sample_aspect_ratio.denominator,
-        bit_rate=av_video_stream.bit_rate,
-        framerate=av_video_stream.codec_context.framerate.numerator
-        // av_video_stream.codec_context.framerate.denominator,
-        gop_size=av_video_stream.codec_context.framerate.numerator * 10,
-        pix_fmt=av_video_stream.pix_fmt,
-    )
-    return py_video_stream
-
-
 @router.post("/add_camera", response_model=Camera)
 async def add_camera(py_cam_create: CameraCreate, db_session: DBSession):
     # I dont like the dual return type. Need to change that
 
     try:
         # Check that we can query the camera and collect some metadata. ## TODO: Change this block to "get_av_streams" to return the main audio and video streams
-        av_camera, err_msg = CameraProcess.probe_url(py_cam_create.url)
+        py_video_stream, py_audio_stream, err_msg = CameraProcess.probe_camera(
+            py_cam_create.url
+        )
         if err_msg:
             raise HTTPException(
                 detail=f"Unable to create camera: {err_msg}",
                 status_code=400,
             )
-        av_video_stream = av_camera.streams.video[0]
-        py_video_stream = get_py_video_stream(av_video_stream)
-        av_camera.close()
 
         # Create the camera in the DB so that it's PK exists and can be ref'd by it's Audio/Video streams.
         py_cam = Camera(
@@ -121,14 +98,12 @@ async def add_camera(py_cam_create: CameraCreate, db_session: DBSession):
                 detail=f"Unable to start recording for camera at: {py_cam_create.url}. Exception: {err}",
                 status_code=500,
             )
-        logger.info("Past add_camera")
 
         # Create the camera's associated streams.
         py_video_stream.camera_id = py_cam.id
         db_session.add(py_video_stream)
         db_session.commit()
         db_session.refresh(py_cam)
-        print(f"\n\nPycam after commit: {py_cam}")
 
         return py_cam
     except Exception as e:

@@ -1,5 +1,5 @@
 from app.db import get_session
-from app.db.models import Camera
+from app.db.models import AudioStream, VideoStream, Camera
 from app.processes.messages import Message, MessageType
 from app.settings.local import settings
 
@@ -41,18 +41,66 @@ class CameraProcess(Process):
         }
 
     @staticmethod
-    def probe_url(url: str):
-        ## TODO: Make this actuall return the audio/video stream classes instead of the av object.
-        camera = None
+    def get_py_video_stream(av_video_stream):
+        if not av_video_stream:
+            return None
+        py_video_stream = VideoStream(
+            codec=av_video_stream.codec.name,
+            time_base_num=av_video_stream.time_base.numerator,
+            time_base_den=av_video_stream.time_base.denominator,
+            height=av_video_stream.height,
+            width=av_video_stream.width,
+            sample_aspect_ratio_num=av_video_stream.sample_aspect_ratio.numerator,
+            sample_aspect_ratio_den=av_video_stream.sample_aspect_ratio.denominator,
+            bit_rate=av_video_stream.bit_rate,
+            framerate=av_video_stream.codec_context.framerate.numerator
+            // av_video_stream.codec_context.framerate.denominator,
+            gop_size=av_video_stream.codec_context.framerate.numerator * 10,
+            pix_fmt=av_video_stream.pix_fmt,
+        )
+        return py_video_stream
+
+    @staticmethod
+    def get_py_audio_stream(av_video_stream):
+        # TODO: Implement this correctly
+        if not av_video_stream:
+            return None
+        py_audio_stream = AudioStream(
+            codec="aac",
+            time_base_den=1,
+            time_base_num=1,
+            sample_rate=1,
+            layout_name="radio",
+            format_name="aac",
+        )
+        return py_audio_stream
+
+    @staticmethod
+    def probe_camera(url: str):
+        av_camera = None
+        py_video_stream = None
+        py_audio_stream = None
         try:
-            camera = av.open(url)
-            return (camera, "")
+            av_camera = av.open(url)
+            av_video_stream = av_camera.streams.best("video")
+            av_audio_stream = av_camera.streams.best("audio")
+            py_video_stream = CameraProcess.get_py_video_stream(av_video_stream)
+            py_audio_stream = CameraProcess.get_py_audio_stream(av_audio_stream)
+            return (py_video_stream, py_audio_stream, "")
         except av.OSError:
-            return (camera, "Input/output error. The provided url could not be opened.")
+            return (
+                py_video_stream,
+                py_audio_stream,
+                "Input/output error. The provided url could not be opened.",
+            )
         except av.FFmpegError as e:
-            return (camera, e.strerror)
+            return (py_video_stream, py_audio_stream, e.strerror)
         except Exception as e:
-            return (camera, "An unknown exception occurred.")
+            return (
+                py_video_stream,
+                py_audio_stream,
+                f"An unknown exception occurred: {e}",
+            )
 
     def _flush_stream(self, stream, output):
         for packet in stream.encode():
