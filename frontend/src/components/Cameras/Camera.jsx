@@ -2,7 +2,6 @@ import ReactPlayer from 'react-player/lazy'
 import { useEffect, useState } from 'react';
 
 const Camera = ({ cameraConfig }) => {
-  console.log(JSON.stringify(cameraConfig))
   const [playing, setPlaying] = useState(true);
   const [config, setConfig] = useState(cameraConfig)
   const [url, setUrl] = useState(`http://localhost:8000/${config.active_playlist}`);
@@ -15,7 +14,7 @@ const Camera = ({ cameraConfig }) => {
       const response = await fetch(`http://localhost:8000/cameras/${config.id}/ready`)
       if (!response.ok || response.status !== 200) {
         retries++
-        await new Promise(resolve => setTimeout(resolve, 2000))
+        await new Promise(resolve => setTimeout(resolve, 4000))
       } else {
         const camera = await response.json()
         setConfig(camera)
@@ -31,8 +30,11 @@ const Camera = ({ cameraConfig }) => {
     if (config.active_playlist === null) {
       fetchCameraUntilReady(config)
     }
+    else {
+      setIsLoading(false)
+    }
   })
-  console.log(JSON.stringify(config))
+
   if (isLoading) {
     return <div>Loading Stream...</div>
   }
