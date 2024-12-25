@@ -6,6 +6,7 @@ from app import process_manager
 from app.settings.local import settings
 
 
+import logging
 from typing import Annotated, List
 from fastapi import (
     APIRouter,
@@ -20,6 +21,8 @@ from fastapi import (
 from fastapi.responses import StreamingResponse, FileResponse
 from sqlmodel import select
 
+logger = logging.getLogger(__name__)
+
 router = APIRouter(
     prefix="/cameras",
     tags=["cameras"],
@@ -33,7 +36,6 @@ async def get_cameras(
     limit: int = Query(default=100, le=100),
     # current_user: Annotated[User, Depends(get_current_active_user)],
 ):
-    print("Get cameras endpoint.")
     cameras = db_session.exec(select(Camera).offset(offset).limit(limit)).all()
     return cameras
 
@@ -73,7 +75,7 @@ async def add_camera(py_cam_create: CameraCreate, db_session: DBSession):
     # I dont like the dual return type. Need to change that
 
     try:
-        # Check that we can query the camera and collect some metadata.
+        # Check that we can query the camera and collect some metadata. ## TODO: Change this block to "get_av_streams" to return the main audio and video streams
         av_camera, err_msg = CameraProcess.probe_url(py_cam_create.url)
         if err_msg:
             raise HTTPException(
@@ -87,7 +89,7 @@ async def add_camera(py_cam_create: CameraCreate, db_session: DBSession):
         # Create the camera in the DB so that it's PK exists and can be ref'd by it's Audio/Video streams.
         py_cam = Camera(
             **py_cam_create.model_dump(),
-            is_recording=True,
+            is_recording=False,
         )
         db_session.add(py_cam)
         db_session.commit()
@@ -105,16 +107,22 @@ async def add_camera(py_cam_create: CameraCreate, db_session: DBSession):
                 detail=f"Unable to start recording for camera at: {py_cam_create.url}. Exception: {err}",
                 status_code=500,
             )
+        logger.info("Past add_camera")
 
         # Create the camera's associated streams.
         py_video_stream.camera_id = py_cam.id
         db_session.add(py_video_stream)
+        db_session.commit()
+        db_session.refresh(py_cam)
+        print(f"\n\nPycam after commit: {py_cam}")
 
         return py_cam
     except Exception as e:
-        print(e)
+        db_session.delete(py_cam)
+        db_session.commit()
+        logger.exception("Unable to connect to camera due to generic exception.")
         raise HTTPException(
-            detail=f"Unable to connect to camera due to an exception: {e}.",
+            detail=f"Unable to connect to camera due to generic exception: {e}.",
             status_code=500,
         )
 

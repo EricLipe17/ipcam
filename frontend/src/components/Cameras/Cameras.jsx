@@ -12,9 +12,7 @@ const Cameras = () => {
         .then(cameras => setCameras(cameras))
         .catch(error => console.error('Error:', error));
     }
-    if (camAdded) {
-      fetchCameras()
-    }
+    fetchCameras()
   }, [camAdded]);
 
   return (

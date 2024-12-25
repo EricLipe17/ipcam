@@ -62,7 +62,7 @@ class CameraProcessManager:
                         message.handle()
                         if message.m_type is MessageType.Error:
                             ## TODO: if a camera fails should we restart it?
-                            pass
+                            logger.warning(f"Encountered error with Camera:{id}.")
                 await asyncio.sleep(self.wait_for)
             except Exception:
                 logger.exception(

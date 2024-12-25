@@ -91,13 +91,33 @@ class CameraProcess(Process):
     def _next_playlist(self):
         return f"cameras/{self.id}/{self._get_date()}/output.m3u8"
 
+    def _send_message(
+        self,
+        message,
+        level=logging.INFO,
+        m_type=MessageType.Error,
+    ):
+        self.connection.send(
+            Message(
+                process_id=self.id,
+                process_name=self.name,
+                message=message,
+                level=level,
+                m_type=m_type,
+            )
+        )
+
     def run(self):
         # Create av camera
+        self._send_message(f"Opening.")
         self.camera = av.open(self.url)
+        self._send_message(f"Successfully opened.")
 
         # Get the camera from the DB to update it as the recording progresses.
+        self._send_message(f"Getting DB session.")
         db_session = next(get_session())
         db_cam = db_session.get(Camera, self.id)
+        self._send_message(f"DB session acquired.")
 
         # Create the AV camera
         hls_opts = self.output_kwargs.get("options")
@@ -108,11 +128,14 @@ class CameraProcess(Process):
         os.makedirs(path, exist_ok=True)
 
         # Set the DB camera's active playlist and recording flag
+        self._send_message(f"Setting active playlist.")
         db_cam.active_playlist = self._next_playlist()
         db_cam.is_recording = True
         db_session.commit()
+        self._send_message(f"Playlist set.")
 
         # Open the HLS output container and begin recording data from the camera.
+        self._send_message(f"Opening new output container.")
         output_container = av.open(
             **self.output_kwargs, file=f"{path}/{self.playlist_name}"
         )
@@ -120,13 +143,7 @@ class CameraProcess(Process):
         out_video_stream = self._get_video_stream(output_container, cam_video_stream)
 
         time_to_record = self._seconds_until_midnight()
-        self.connection.send(
-            Message(
-                process_id=self.id,
-                process_name=self.name,
-                message="Begining recording.",
-            )
-        )
+        self._send_message(f"Recording.")
         for frame in self.camera.decode(cam_video_stream):
             try:
                 if frame.dts is None:
@@ -134,12 +151,8 @@ class CameraProcess(Process):
 
                 if int(frame.time) % time_to_record == 0 and frame.time > 1:
                     # This playlist has reached it's max size, roll it over and start the next playlist.
-                    self.connection.send(
-                        Message(
-                            process_id=self.id,
-                            process_name=self.name,
-                            message="Playlist max size reaached. Rolling over to a new playlist.",
-                        )
+                    self._send_message(
+                        f"Playlist max size reached. Rolling over to a new playlist."
                     )
                     self._flush_stream(out_video_stream, output_container)
                     output_container.close()
@@ -163,12 +176,8 @@ class CameraProcess(Process):
             except Exception as e:
                 self.camera.close()
                 output_container.close()
-                self.connection.send(
-                    Message(
-                        process_id=self.id,
-                        process_name=self.name,
-                        message=f"Recording encountered an exception! Camera connection has been closed. Exception: {e}",
-                        m_type=MessageType.Error,
-                        level=logging.ERROR,
-                    )
+                self._send_message(
+                    message=f"Encountered generic exception while recording. Closing all resources and stopping.",
+                    level=logging.ERROR,
+                    m_type=MessageType.Error,
                 )

@@ -4,10 +4,14 @@ from app.settings.local import settings
 
 import asyncio
 from contextlib import asynccontextmanager
+import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 import uvicorn
+
+
+logging.basicConfig(level=logging.INFO)
 
 
 @asynccontextmanager
