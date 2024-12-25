@@ -95,7 +95,7 @@ class CameraProcess(Process):
         self,
         message,
         level=logging.INFO,
-        m_type=MessageType.Error,
+        m_type=MessageType.Log,
     ):
         self.connection.send(
             Message(
