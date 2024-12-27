@@ -170,8 +170,11 @@ class CameraProcess(Process):
             )
         )
 
-    def close(self):
+    def close(self, db_session):
         """Close all av resources."""
+        db_cam = db_session.get(Camera, self.id)
+        db_cam.is_recording = False
+        db_session.commit()
         self.camera.close()
         self.output_container.close()
 
@@ -250,14 +253,14 @@ class CameraProcess(Process):
                     level=logging.WARNING,
                 )
             except av.FFmpegError as e:
-                self.close()
+                self.close(db_session)
                 self._send_message(
                     message=f"Encountered Ffmpeg exception while recording. Closing all resources and stopping. \n{e}",
                     level=logging.ERROR,
                     m_type=MessageType.Error,
                 )
             except Exception as e:
-                self.close()
+                self.close(db_session)
                 self._send_message(
                     message=f"Encountered generic exception while recording. Closing all resources and stopping. \n{e}",
                     level=logging.ERROR,
