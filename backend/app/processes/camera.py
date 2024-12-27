@@ -170,6 +170,11 @@ class CameraProcess(Process):
             )
         )
 
+    def close(self):
+        """Close all av resources."""
+        self.camera.close()
+        self.output_container.close()
+
     def run(self):
         """Start recording the camera's data."""
         # Create av camera
@@ -245,16 +250,14 @@ class CameraProcess(Process):
                     level=logging.WARNING,
                 )
             except av.FFmpegError as e:
-                self.camera.close()
-                self.output_container.close()
+                self.close()
                 self._send_message(
                     message=f"Encountered Ffmpeg exception while recording. Closing all resources and stopping. \n{e}",
                     level=logging.ERROR,
                     m_type=MessageType.Error,
                 )
             except Exception as e:
-                self.camera.close()
-                self.output_container.close()
+                self.close()
                 self._send_message(
                     message=f"Encountered generic exception while recording. Closing all resources and stopping. \n{e}",
                     level=logging.ERROR,
