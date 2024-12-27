@@ -16,10 +16,10 @@ if mp.get_start_method() != "spawn":
     mp.set_start_method("spawn", force=True)
 
 
-class CameraProcessManager:
+class ProcessManager:
     processes: Dict[int, mp.Process]
     connections: Dict[int, Connection]
-    restarts = List[mp.Process]
+    restarts = List[int]
     sleep: float
 
     def __init__(self):
@@ -28,7 +28,27 @@ class CameraProcessManager:
         self.restarts = list()
         self.sleep = 0.5
 
+    def add_process(self, id: int, connection: Connection, process: mp.Process):
+        """
+        Add a generic process and it's parent connection to the process pool. @process must be a subclass of
+        mp.Process so that it can define the member `proc_type`.
+        """
+        try:
+            if not process.is_alive():
+                process.start()
+        except Exception:
+            logger.exception(
+                f"Encountered exception when adding process:{process.proc_type} with ID:{id} to the process pool."
+            )
+            if process.is_alive():
+                process.kill()
+        else:
+            self.processes[id] = process
+            self.connections[id] = connection
+            return None
+
     def add_camera(self, id: int, name: str, url: str):
+        """Create and add a camera process to the process pool."""
         try:
             if id in self.processes:
                 return f"Cannot create process with id:{id} because it already exists!"
@@ -54,6 +74,7 @@ class CameraProcessManager:
             return None
 
     def copy_process(self, dead_proc, new_conn):
+        """Create a copy of a dead process based on the process type."""
         match dead_proc.proc_type:
             case ProcessType.Camera:
                 new_camera = CameraProcess(
@@ -69,11 +90,15 @@ class CameraProcessManager:
                 )
                 return None
 
-    async def poll_restart_processes(self):
+    async def poll_restarts(self):
+        """Coroutine to restart dead processes."""
         while True:
             for id in self.restarts:
                 try:
                     dead_proc = self.processes.pop(id)
+                    logger.info(
+                        f"Trying to restart process:{dead_proc.proc_type}, ID: {id}."
+                    )
                     self.connections.pop(id)
 
                     parent_conn, child_conn = mp.Pipe()
@@ -81,17 +106,21 @@ class CameraProcessManager:
                     new_proc.start()
                 except Exception:
                     logger.exception(
-                        f"Fatal error: Unable to restart process with ID:{id}."
+                        f"Fatal error: Unable to restart process:{dead_proc.proc_type} with ID:{id}."
                     )
                     if new_proc and new_proc.is_alive():
                         new_proc.kill()
                 else:
+                    logger.info(
+                        f"Process:{new_proc.proc_type}, ID:{id} successfully restarted."
+                    )
                     self.processes[new_proc.id] = new_proc
                     self.connections[new_proc.id] = parent_conn
+            self.restarts.clear()
+            await asyncio.sleep(self.sleep * 10)
 
-            await asyncio.sleep(self.sleep)
-
-    async def poll_cameras(self):
+    async def poll_processes(self):
+        """Coroutine to poll for processes for messages."""
         while True:
             try:
                 for id, connection in self.connections.items():
@@ -101,9 +130,9 @@ class CameraProcessManager:
                         if message.m_type == MessageType.Error:
                             ## TODO: if a camera fails should we restart it?
                             self.restarts.append(id)
-                            logger.warning(f"Encountered error with Camera:{id}.")
+                            logger.warning(
+                                f"Encountered error with ID:{id}. Queuing process for restart."
+                            )
                 await asyncio.sleep(self.sleep)
             except Exception:
-                logger.exception(
-                    f"Caught exception trying to poll camera connections for id:{id}."
-                )
+                logger.exception(f"Caught exception trying to poll camera connections.")

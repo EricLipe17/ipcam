@@ -40,8 +40,8 @@ uvicorn_logger.addFilter(EndpointFilter(path="/output.m3u8"))
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     print("Executing startup tasks")
-    asyncio.create_task(process_manager.poll_cameras())
-    asyncio.create_task(process_manager.poll_restart_processes())
+    asyncio.create_task(process_manager.poll_processes())
+    asyncio.create_task(process_manager.poll_restarts())
     yield
     print("Executing shutdown tasks")
 
