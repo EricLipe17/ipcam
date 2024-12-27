@@ -12,6 +12,7 @@ from multiprocessing import Process
 from multiprocessing.connection import Connection
 import os
 import pytz
+from sqlalchemy.exc import SQLAlchemyError
 import time
 
 
@@ -30,6 +31,7 @@ class CameraProcess(Process):
         self.id = id
         self.connection = connection
         self.camera = None
+        self.output_container = None
         self.playlist_name = "output.m3u8"
         self.output_kwargs = {
             "mode": "w",
@@ -121,9 +123,9 @@ class CameraProcess(Process):
         """Get path to store segments for current playlist."""
         return f"{settings.storage_dir}/cameras/{self.id}/{self._get_date()}"
 
-    def _get_video_stream(self, output_container, input_video_stream):
+    def _get_video_stream(self, input_video_stream):
         """Get new av video stream from an input stream template."""
-        stream = output_container.add_stream(codec_name="h264", options={})
+        stream = self.output_container.add_stream(codec_name="h264", options={})
         # The options are required for transcoding to work
         stream.height = input_video_stream.height
         stream.width = input_video_stream.width
@@ -198,11 +200,11 @@ class CameraProcess(Process):
 
         # Open the HLS output container and begin recording data from the camera.
         self._send_message(f"Opening new output container.")
-        output_container = av.open(
+        self.output_container = av.open(
             **self.output_kwargs, file=f"{path}/{self.playlist_name}"
         )
         cam_video_stream = self.camera.streams.video[0]
-        out_video_stream = self._get_video_stream(output_container, cam_video_stream)
+        out_video_stream = self._get_video_stream(cam_video_stream)
 
         time_to_record = self._seconds_until_midnight()
         self._send_message(f"Recording.")
@@ -216,28 +218,43 @@ class CameraProcess(Process):
                     self._send_message(
                         f"Playlist max size reached. Rolling over to a new playlist."
                     )
-                    self._flush_stream(out_video_stream, output_container)
-                    output_container.close()
+                    self._send_message(f"Flushing streams.")
+                    self._flush_stream(out_video_stream, self.output_container)
+                    self.output_container.close()
                     path = self._get_path()
                     hls_opts.update({"hls_base_url": self._get_segment_url()})
                     os.makedirs(path, exist_ok=True)
-                    output_container = av.open(
+
+                    self._send_message(f"Opening new output container.")
+                    self.output_container = av.open(
                         **self.output_kwargs, file=f"{path}/{self.playlist_name}"
                     )
-                    out_video_stream = self._get_video_stream(
-                        output_container, cam_video_stream
-                    )
+                    out_video_stream = self._get_video_stream(cam_video_stream)
 
                     # Update the playlist in the DB camera since we are rolling it over.
+                    self._send_message(f"Updating DB with new info.")
                     db_cam = db_session.get(Camera, self.id)
                     db_cam.active_playlist = self._next_playlist()
                     db_session.commit()
 
                 for packet in out_video_stream.encode(frame):
-                    output_container.mux(packet)
+                    self.output_container.mux(packet)
+            except SQLAlchemyError:
+                self._send_message(
+                    f"Encountered a sqlalchemy error, continuing to record.",
+                    level=logging.WARNING,
+                )
+            except av.FFmpegError as e:
+                self.camera.close()
+                self.output_container.close()
+                self._send_message(
+                    message=f"Encountered Ffmpeg exception while recording. Closing all resources and stopping. \n{e}",
+                    level=logging.ERROR,
+                    m_type=MessageType.Error,
+                )
             except Exception as e:
                 self.camera.close()
-                output_container.close()
+                self.output_container.close()
                 self._send_message(
                     message=f"Encountered generic exception while recording. Closing all resources and stopping. \n{e}",
                     level=logging.ERROR,
