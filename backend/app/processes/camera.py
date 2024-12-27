@@ -1,6 +1,7 @@
 from app.db import get_session
 from app.db.models import AudioStream, VideoStream, Camera
-from app.processes.messages import Message, MessageType
+from app.processes.messages import Message
+from app.processes.enums import MessageType, ProcessType
 from app.settings.local import settings
 
 import av
@@ -21,6 +22,7 @@ class CameraProcess(Process):
     camera: InputContainer
     playlist_name: str
     output_kwargs: dict
+    proc_type: ProcessType
 
     def __init__(self, url: str, id: int, connection: Connection, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -39,6 +41,7 @@ class CameraProcess(Process):
                 "hls_flags": "append_list",
             },
         }
+        self.proc_type = ProcessType.Camera
 
     @staticmethod
     def get_py_video_stream(av_video_stream):

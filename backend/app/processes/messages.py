@@ -1,14 +1,10 @@
 from dataclasses import dataclass
-from enum import Enum
 import logging
+
+from app.processes.enums import MessageType
 
 
 logger = logging.getLogger(__name__)
-
-
-class MessageType(Enum):
-    Log = 1
-    Error = 2
 
 
 @dataclass
