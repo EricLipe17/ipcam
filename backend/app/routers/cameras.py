@@ -64,8 +64,6 @@ async def camera_ready(id: int, db_session: DBSession):
 
 @router.post("/add_camera", response_model=Camera)
 async def add_camera(py_cam_create: CameraCreate, db_session: DBSession):
-    # I dont like the dual return type. Need to change that
-
     try:
         # Check that we can query the camera and collect some metadata. ## TODO: Change this block to "get_av_streams" to return the main audio and video streams
         py_video_stream, py_audio_stream, err_msg = CameraProcess.probe_camera(
