@@ -45,6 +45,7 @@ class CameraProcess(Process):
 
     @staticmethod
     def get_py_video_stream(av_video_stream):
+        """Get DB representation of av video stream."""
         if not av_video_stream:
             return None
         py_video_stream = VideoStream(
@@ -64,9 +65,10 @@ class CameraProcess(Process):
         return py_video_stream
 
     @staticmethod
-    def get_py_audio_stream(av_video_stream):
+    def get_py_audio_stream(av_audio_stream):
+        """Get DB representation of the av audio stream."""
         # TODO: Implement this correctly
-        if not av_video_stream:
+        if not av_audio_stream:
             return None
         py_audio_stream = AudioStream(
             codec="aac",
@@ -80,6 +82,7 @@ class CameraProcess(Process):
 
     @staticmethod
     def probe_camera(url: str):
+        """Try to open connection to camera and return audio/video metadata upon success."""
         av_camera = None
         py_video_stream = None
         py_audio_stream = None
@@ -106,16 +109,20 @@ class CameraProcess(Process):
             )
 
     def _flush_stream(self, stream, output):
+        """Flush all data in the stream."""
         for packet in stream.encode():
             output.mux(packet)
 
     def _get_date(self):
+        """Get date string: '%Y-%m-%d'."""
         return f"{datetime.now().strftime("%Y-%m-%d")}"
 
     def _get_path(self):
+        """Get path to store segments for current playlist."""
         return f"{settings.storage_dir}/cameras/{self.id}/{self._get_date()}"
 
     def _get_video_stream(self, output_container, input_video_stream):
+        """Get new av video stream from an input stream template."""
         stream = output_container.add_stream(codec_name="h264", options={})
         # The options are required for transcoding to work
         stream.height = input_video_stream.height
@@ -137,9 +144,11 @@ class CameraProcess(Process):
         return time_left.seconds
 
     def _get_segment_url(self):
+        """Get the segment url for the HLS playlist."""
         return f"/cameras/{self.id}/segments/{self._get_date()}/"
 
     def _next_playlist(self):
+        """Get the next active HLS playlist."""
         return f"cameras/{self.id}/{self._get_date()}/output.m3u8"
 
     def _send_message(
@@ -148,6 +157,7 @@ class CameraProcess(Process):
         level=logging.INFO,
         m_type=MessageType.Log,
     ):
+        """Send a message to the manager."""
         self.connection.send(
             Message(
                 process_id=self.id,
@@ -159,6 +169,7 @@ class CameraProcess(Process):
         )
 
     def run(self):
+        """Start recording the camera's data."""
         # Create av camera
         self._send_message(f"Opening.")
         self.camera = av.open(self.url)
@@ -228,7 +239,7 @@ class CameraProcess(Process):
                 self.camera.close()
                 output_container.close()
                 self._send_message(
-                    message=f"Encountered generic exception while recording. Closing all resources and stopping.",
+                    message=f"Encountered generic exception while recording. Closing all resources and stopping. \n{e}",
                     level=logging.ERROR,
                     m_type=MessageType.Error,
                 )
