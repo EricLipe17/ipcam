@@ -2,8 +2,11 @@ import asyncio
 import logging
 import multiprocessing as mp
 from multiprocessing.connection import Connection
+from sqlmodel import select
 from typing import List, Dict
 
+from app.db import get_session
+from app.db.models import Camera
 from app.processes import CameraProcess
 from app.processes.enums import MessageType, ProcessType
 
@@ -20,6 +23,7 @@ class ProcessManager:
     processes: Dict[int, mp.Process]
     connections: Dict[int, Connection]
     restarts = List[int]
+    retries: Dict[int, int]
     sleep: float
 
     def __init__(self):
@@ -27,6 +31,18 @@ class ProcessManager:
         self.connections = dict()
         self.restarts = list()
         self.sleep = 0.5
+        self.max_restarts = 10
+
+    def start_processes(self):
+        db_session = next(get_session())
+
+        self._start_camera_processes(db_session)
+
+    def _start_camera_processes(self, db_session):
+        stmt = select(Camera).where(Camera.is_recording == True)
+        cameras = db_session.exec(stmt)
+        for camera in cameras:
+            self.add_camera(id=camera.id, name=camera.name, url=camera.url)
 
     def add_process(self, id: int, connection: Connection, process: mp.Process):
         """
@@ -45,6 +61,7 @@ class ProcessManager:
         else:
             self.processes[id] = process
             self.connections[id] = connection
+            self.retries[id] = 0
             return None
 
     def add_camera(self, id: int, name: str, url: str):
@@ -71,9 +88,10 @@ class ProcessManager:
         else:
             self.processes[id] = camera
             self.connections[id] = parent_conn
+            self.retries[id] = 0
             return None
 
-    def copy_process(self, dead_proc, new_conn):
+    def _copy_process(self, dead_proc, new_conn):
         """Create a copy of a dead process based on the process type."""
         match dead_proc.proc_type:
             case ProcessType.Camera:
@@ -90,11 +108,12 @@ class ProcessManager:
                 )
                 return None
 
-    async def poll_restarts(self):
+    async def _poll_restarts(self):
         """Coroutine to restart dead processes."""
         while True:
             for id in self.restarts:
                 try:
+                    self.retries[id] += 1
                     dead_proc = self.processes.pop(id)
                     logger.info(
                         f"Trying to restart process:{dead_proc.proc_type}, ID: {id}."
@@ -102,7 +121,7 @@ class ProcessManager:
                     self.connections.pop(id)
 
                     parent_conn, child_conn = mp.Pipe()
-                    new_proc = self.copy_process(dead_proc, child_conn)
+                    new_proc = self._copy_process(dead_proc, child_conn)
                     new_proc.start()
                 except Exception:
                     logger.exception(
@@ -119,8 +138,8 @@ class ProcessManager:
             self.restarts.clear()
             await asyncio.sleep(self.sleep * 10)
 
-    async def poll_processes(self):
-        """Coroutine to poll for processes for messages."""
+    async def _poll_processes(self):
+        """Coroutine to poll process' for messages."""
         while True:
             try:
                 for id, connection in self.connections.items():
@@ -128,11 +147,19 @@ class ProcessManager:
                         message = connection.recv()
                         message.handle()
                         if message.m_type == MessageType.Error:
-                            ## TODO: if a camera fails should we restart it?
-                            self.restarts.append(id)
-                            logger.warning(
-                                f"Encountered error with ID:{id}. Queuing process for restart."
-                            )
+                            if self.retries.get(id) < self.max_restarts:
+                                self.restarts.append(id)
+                                logger.warning(
+                                    f"Encountered error with ID:{id}. Process has been "
+                                    f"restarted {self.retries.get(id)} times"
+                                )
+                            else:
+                                logger.error(
+                                    f"Process with ID:{id} has breached it's restart limit of {self.max_restarts} "
+                                    "and will no longer try to be restarted."
+                                )
+                                self.processes.pop(id)
+                                self.connections.pop(id)
                 await asyncio.sleep(self.sleep)
             except Exception:
                 logger.exception(f"Caught exception trying to poll camera connections.")
