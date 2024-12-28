@@ -93,7 +93,8 @@ const Cameras = () => {
               style={{
                 width: "640px",
                 height: "360px",
-                backgroundColor: "red"
+                backgroundColor: "gray",
+                opacity: 0.3
               }}
             ></div>
           ) : null}
