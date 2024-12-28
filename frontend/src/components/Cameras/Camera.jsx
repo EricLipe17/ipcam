@@ -14,7 +14,7 @@ const Camera = ({ cameraConfig }) => {
       const response = await fetch(`http://localhost:8000/cameras/${config.id}/ready`)
       if (!response.ok || response.status !== 200) {
         retries++
-        await new Promise(resolve => setTimeout(resolve, 4000))
+        await new Promise(resolve => setTimeout(resolve, 6000))
       } else {
         const camera = await response.json()
         setConfig(camera)
@@ -41,6 +41,16 @@ const Camera = ({ cameraConfig }) => {
 
   return (
     <div>
+      <div style={{
+        display: "flex",
+        justifyContent: "space-between",
+        background: "black",
+        border: "2px solid white",
+      }}>
+        <span>ID: {cameraConfig.id}</span>
+        <span>Name: {cameraConfig.name}</span>
+        <span>Location: {cameraConfig.location}</span>
+      </div>
       <ReactPlayer
         url={url}
         playing={playing}

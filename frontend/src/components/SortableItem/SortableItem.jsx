@@ -15,9 +15,8 @@ const SortableItem = ({ id, children }) => {
     transition,
     width: "640px",
     height: "360px",
-    border: "2px solid red",
-    backgroundColor: "#cccccc",
-    margin: "5px",
+    backgroundColor: "black",
+    margin: "10px",
     zIndex: isDragging ? "100" : "auto",
     opacity: isDragging ? 0.3 : 1
   };
