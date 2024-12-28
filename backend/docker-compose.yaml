@@ -11,6 +11,7 @@ services:
       bash -c "alembic upgrade head && python ./app/main.py"
     depends_on:
       - postgres
+      - rtsp-server
 
   postgres:
     image: postgres:17.2-bookworm

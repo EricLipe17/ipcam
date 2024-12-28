@@ -29,6 +29,7 @@ class ProcessManager:
     def __init__(self):
         self.processes = dict()
         self.connections = dict()
+        self.retries = dict()
         self.restarts = list()
         self.sleep = 0.5
         self.max_restarts = 10
