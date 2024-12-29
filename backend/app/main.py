@@ -33,7 +33,7 @@ class EndpointFilter(logging.Filter):
 
 # Filter out uvicorn logs coming from the segments and playlist endpoints
 uvicorn_logger = logging.getLogger("uvicorn.access")
-uvicorn_logger.addFilter(EndpointFilter(path="/segments"))
+uvicorn_logger.addFilter(EndpointFilter(path="/segment"))
 uvicorn_logger.addFilter(EndpointFilter(path="/output.m3u8"))
 
 logger = logging.getLogger(__name__)
@@ -78,12 +78,6 @@ app.add_middleware(TrustedHostMiddleware, allowed_hosts=settings.allowed_hosts)
 app.include_router(auth.router)
 app.include_router(cameras.router)
 app.include_router(users.router)
-
-
-@app.get("/")
-async def main():
-    print("Inside of main!")
-    return {"message": "Hello World"}
 
 
 if __name__ == "__main__":

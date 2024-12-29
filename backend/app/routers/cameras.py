@@ -49,14 +49,17 @@ async def get_camera(
 
 
 @router.get("/{id}/ready", response_model=Camera)
-async def camera_ready(id: int, db_session: DBSession):
+async def ready(id: int, db_session: DBSession):
     camera = db_session.get(Camera, id)
     if not camera:
         raise HTTPException(detail=f"Camera with id:{id} not found.", status_code=404)
 
-    if camera.active_playlist is None and not os.path.exists(
-        f"{settings.storage_dir}/{camera.active_playlist}"
-    ):
+    if camera.active_playlist is None:
+        raise HTTPException(detail="Not ready yet.", status_code=204)
+
+    playlist_dir = f"{settings.storage_dir}/{camera.active_playlist}".rsplit("/", 1)[0]
+    num_files = len(os.listdir(playlist_dir))
+    if num_files < 3:
         raise HTTPException(detail="Not ready yet.", status_code=204)
 
     return camera
@@ -112,7 +115,7 @@ async def add_camera(py_cam_create: CameraCreate, db_session: DBSession):
         )
 
 
-@router.get("/{id}/{date}/{playlist}")
+@router.get("/{id}/segments/{date}/{playlist}")
 async def get_playlist(id: int, date: str, playlist: str):
     return FileResponse(
         path=f"{settings.storage_dir}/cameras/{id}/segments/{date}/{playlist}",
@@ -120,7 +123,7 @@ async def get_playlist(id: int, date: str, playlist: str):
     )
 
 
-@router.get("/{id}/segments/{date}/{filename}")
+@router.get("/{id}/segment")
 async def get_segment(id: int, date: str, filename: str):
     return FileResponse(
         path=f"{settings.storage_dir}/cameras/{id}/segments/{date}/{filename}",

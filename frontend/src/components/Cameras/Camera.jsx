@@ -16,7 +16,7 @@ const Camera = ({ id }) => {
       const response = await fetch(`http://localhost:8000/cameras/${id}/ready`)
       if (!response.ok || response.status !== 200) {
         retries++
-        await new Promise(resolve => setTimeout(resolve, 6000))
+        await new Promise(resolve => setTimeout(resolve, 4000))
       } else {
         const camera = await response.json()
         setConfig(camera)
