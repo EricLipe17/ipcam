@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react'
 import {
   DndContext,
   closestCenter,
-  KeyboardSensor,
   PointerSensor,
   useSensor,
   useSensors,
@@ -11,7 +10,6 @@ import {
 import {
   arrayMove,
   SortableContext,
-  sortableKeyboardCoordinates,
   rectSortingStrategy
 } from "@dnd-kit/sortable";
 
@@ -38,9 +36,6 @@ const Cameras = () => {
 
   const sensors = useSensors(
     useSensor(PointerSensor),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates
-    })
   );
 
   const handleDragStart = (event) => {
@@ -53,9 +48,9 @@ const Cameras = () => {
 
     if (active.id !== over.id) {
       setCameras((cameras) => {
-        const oldCamerConfig = cameras.find(conf => conf.id === active.id);
+        const oldCameraConfig = cameras.find(conf => conf.id === active.id);
         const overCamerConfig = cameras.find(conf => conf.id === over.id);
-        const oldIndex = cameras.indexOf(oldCamerConfig)
+        const oldIndex = cameras.indexOf(oldCameraConfig)
         const newIndex = cameras.indexOf(overCamerConfig);
 
         return arrayMove(cameras, oldIndex, newIndex);
@@ -65,7 +60,7 @@ const Cameras = () => {
 
   useEffect(() => {
     window.addEventListener("resize", handleResize);
-    fetchCameras()
+    fetchCameras() // TODO: This is inneficient because the Camera component has to duplicate the request to ensure pureness and make sure the livestream for itself has officially been published.
     return () => window.removeEventListener("resize", handleResize);
   }, [camAdded]);
 
@@ -80,9 +75,9 @@ const Cameras = () => {
       >
         <SortableContext items={cameras} strategy={rectSortingStrategy}>
           <Grid columns={cols}>
-            {cameras.map((cameraConfig) => (
-              <SortableItem key={cameraConfig.id} id={cameraConfig.id} handle={true} >
-                <Camera cameraConfig={cameraConfig} />
+            {cameras.map((camera) => (
+              <SortableItem key={camera.id} id={camera.id} handle={true} >
+                <Camera id={camera.id} />
               </SortableItem>
             ))}
           </Grid>

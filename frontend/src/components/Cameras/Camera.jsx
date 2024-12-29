@@ -1,23 +1,21 @@
 import ReactPlayer from 'react-player/lazy'
 import { useEffect, useState } from 'react';
 
-const Camera = ({ cameraConfig }) => {
+const Camera = ({ id }) => {
   const [playing, setPlaying] = useState(true);
-  const [config, setConfig] = useState(cameraConfig)
-  const [isLoading, setIsLoading] = useState(false);
-
+  const [config, setConfig] = useState()
+  const [isLoading, setIsLoading] = useState(true);
 
   // Note: hls.js requires a path based URL. Adding query parameters adds range headers which breaks the functionality.
-  const [url, setUrl] = useState(`http://localhost:8000/${config.active_playlist}`);
+  const [url, setUrl] = useState('');
 
-  async function fetchCameraUntilReady(config) {
+  async function waitUntilAvailable() {
     let retries = 0
-    let maxRetries = 5
+    const maxRetries = 5
     while (retries < maxRetries) {
-      const response = await fetch(`http://localhost:8000/cameras/${config.id}/ready`)
+      const response = await fetch(`http://localhost:8000/cameras/${id}/ready`)
       if (!response.ok || response.status !== 200) {
         retries++
-        setIsLoading(true)
         await new Promise(resolve => setTimeout(resolve, 6000))
       } else {
         const camera = await response.json()
@@ -31,10 +29,8 @@ const Camera = ({ cameraConfig }) => {
   }
 
   useEffect(() => {
-    if (config.active_playlist === null) {
-      fetchCameraUntilReady(config)
-    }
-  })
+    waitUntilAvailable()
+  }, [])
 
   if (isLoading) {
     return <div>Loading Stream...</div>
@@ -48,9 +44,9 @@ const Camera = ({ cameraConfig }) => {
         background: "black",
         border: "2px solid white",
       }}>
-        <span>ID: {cameraConfig.id}</span>
-        <span>Name: {cameraConfig.name}</span>
-        <span>Location: {cameraConfig.location}</span>
+        <span>ID: {id}</span>
+        <span>Name: {config.name}</span>
+        <span>Location: {config.location}</span>
       </div>
       <ReactPlayer
         url={url}
@@ -84,10 +80,11 @@ const Camera = ({ cameraConfig }) => {
         onPause={() => setPlaying(false)}
         onEnded={() => {
           // Use this to get the next playlist to continue the livestream
-          fetch(`http://localhost:8000/cameras/${cameraConfig.id}/`).then(response => response.json())
+          fetch(`http://localhost:8000/cameras/${id}/`).then(response => response.json())
             .then(camera => {
               setUrl(`http://localhost:8000/${camera.active_playlist}`)
               setPlaying(true)
+              setConfig(camera)
             })
         }}
       />
