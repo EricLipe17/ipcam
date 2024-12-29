@@ -27,6 +27,7 @@ const Camera = ({ id }) => {
         } catch (err) {
           setIsLoading(false)
           setErrorMsg(`Error trying to query cammera livestream 'ready' endpoint. Error: ${JSON.stringify(err)}`)
+          setRetries(9999)
         }
       } else {
         setIsLoading(false)
