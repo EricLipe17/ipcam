@@ -93,8 +93,9 @@ async def add_camera(py_cam_create: CameraCreate, db_session: DBSession):
         )
         if err:
             # If we aren't recording, we should delete this camera from DB
-            db_session.delete(py_cam)
-            db_session.commit()
+            if py_cam in db_session:
+                db_session.delete(py_cam)
+                db_session.commit()
             raise HTTPException(
                 detail=f"Unable to start recording for camera at: {py_cam_create.url}. Exception: {err}",
                 status_code=500,
@@ -114,13 +115,14 @@ async def add_camera(py_cam_create: CameraCreate, db_session: DBSession):
 @router.get("/{id}/{date}/{playlist}")
 async def get_playlist(id: str, date: str, playlist: str):
     return FileResponse(
-        path=f"{settings.storage_dir}/cameras/{id}/{date}/{playlist}", filename=playlist
+        path=f"{settings.storage_dir}/cameras/{id}/segments/{date}/{playlist}",
+        filename=playlist,
     )
 
 
 @router.get("/{id}/segments/{date}/{segment}")
 async def get_segment(id: str, date: str, segment: str):
-    print(f"Segment: {segment}")
     return FileResponse(
-        path=f"{settings.storage_dir}/cameras/{id}/{date}/{segment}", filename=segment
+        path=f"{settings.storage_dir}/cameras/{id}/segments/{date}/{segment}",
+        filename=segment,
     )

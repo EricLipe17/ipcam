@@ -4,8 +4,11 @@ import { useEffect, useState } from 'react';
 const Camera = ({ cameraConfig }) => {
   const [playing, setPlaying] = useState(true);
   const [config, setConfig] = useState(cameraConfig)
+  const [isLoading, setIsLoading] = useState(false);
+
+
+  // Note: hls.js requires a path based URL. Adding query parameters adds range headers which breaks the functionality.
   const [url, setUrl] = useState(`http://localhost:8000/${config.active_playlist}`);
-  const [isLoading, setIsLoading] = useState(true);
 
   async function fetchCameraUntilReady(config) {
     let retries = 0
@@ -14,6 +17,7 @@ const Camera = ({ cameraConfig }) => {
       const response = await fetch(`http://localhost:8000/cameras/${config.id}/ready`)
       if (!response.ok || response.status !== 200) {
         retries++
+        setIsLoading(true)
         await new Promise(resolve => setTimeout(resolve, 6000))
       } else {
         const camera = await response.json()
@@ -29,9 +33,6 @@ const Camera = ({ cameraConfig }) => {
   useEffect(() => {
     if (config.active_playlist === null) {
       fetchCameraUntilReady(config)
-    }
-    else {
-      setIsLoading(false)
     }
   })
 
