@@ -4,8 +4,10 @@ import { useEffect, useState } from 'react';
 const Camera = ({ cameraConfig }) => {
   const [playing, setPlaying] = useState(true);
   const [config, setConfig] = useState(cameraConfig)
-  const [url, setUrl] = useState(`http://localhost:8000/${config.active_playlist}`);
   const [isLoading, setIsLoading] = useState(true);
+
+  const playlist_conf = config.active_playlist.split('/')
+  const [url, setUrl] = useState(`http://localhost:8000/cameras/${cameraConfig.id}/playlist?date=${playlist_conf[3]}`);
 
   async function fetchCameraUntilReady(config) {
     let retries = 0
@@ -34,6 +36,8 @@ const Camera = ({ cameraConfig }) => {
       setIsLoading(false)
     }
   })
+
+  console.log(url)
 
   if (isLoading) {
     return <div>Loading Stream...</div>
@@ -72,7 +76,8 @@ const Camera = ({ cameraConfig }) => {
           // Use this to get the next playlist to continue the livestream
           fetch(`http://localhost:8000/cameras/${cameraConfig.id}/`).then(response => response.json())
             .then(camera => {
-              setUrl(`http://localhost:8000/${camera.active_playlist}`)
+              const cam_playlist_conf = camera.active_playlist.split('/')
+              setUrl(`http://localhost:8000/cameras/${camera.id}/playlist?date=${cam_playlist_conf[3]}`)
               setPlaying(true)
             })
         }}

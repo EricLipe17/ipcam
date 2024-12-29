@@ -12,6 +12,7 @@ from fastapi import (
     APIRouter,
     Depends,
     HTTPException,
+    Request,
     Query,
 )
 from fastapi.responses import FileResponse
@@ -111,16 +112,23 @@ async def add_camera(py_cam_create: CameraCreate, db_session: DBSession):
         )
 
 
-@router.get("/{id}/{date}/{playlist}")
-async def get_playlist(id: str, date: str, playlist: str):
+@router.get("/{id}/playlist")
+async def get_playlist(id: str, date: str, request: Request):
+    logger.info(
+        f"Inside of playlist endpoint: id: {id}, date={date}, playlist=output.m3u8"
+    )
+    logger.info(f"Request headers: {request.headers}")
     return FileResponse(
-        path=f"{settings.storage_dir}/cameras/{id}/{date}/{playlist}", filename=playlist
+        path=f"{settings.storage_dir}/cameras/{id}/segments/{date}/output.m3u8",
+        filename="output.m3u8",
+        status_code=200,
     )
 
 
-@router.get("/{id}/segments/{date}/{segment}")
+@router.get("/{id}/segment")
 async def get_segment(id: str, date: str, segment: str):
-    print(f"Segment: {segment}")
     return FileResponse(
-        path=f"{settings.storage_dir}/cameras/{id}/{date}/{segment}", filename=segment
+        path=f"{settings.storage_dir}/cameras/{id}/segments/{date}/{segment}",
+        filename=segment,
+        status_code=200,
     )
