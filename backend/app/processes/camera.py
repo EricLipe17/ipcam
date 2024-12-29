@@ -109,6 +109,8 @@ class CameraProcess(Process):
                 py_audio_stream,
                 f"An unknown exception occurred: {e}",
             )
+        finally:
+            av_camera.close()
 
     def _flush_stream(self, stream, output):
         """Flush all data in the stream."""

@@ -4,33 +4,33 @@ import { useEffect, useState } from 'react';
 const Camera = ({ id }) => {
   const [playing, setPlaying] = useState(true);
   const [config, setConfig] = useState()
+  const [retries, setRetries] = useState(0)
   const [isLoading, setIsLoading] = useState(true);
 
   // Note: hls.js requires a path based URL. Adding query parameters adds range headers which breaks the functionality.
   const [url, setUrl] = useState('');
 
-  async function waitUntilAvailable() {
-    let retries = 0
-    const maxRetries = 5
-    while (retries < maxRetries) {
-      const response = await fetch(`http://localhost:8000/cameras/${id}/ready`)
-      if (!response.ok || response.status !== 200) {
-        retries++
-        await new Promise(resolve => setTimeout(resolve, 4000))
-      } else {
-        const camera = await response.json()
-        setConfig(camera)
-        setUrl(`http://localhost:8000/${camera.active_playlist}`)
-        setIsLoading(false)
-        break
-      }
-    }
-    // TODO: Add error handling if we hit max retries
-  }
-
   useEffect(() => {
-    waitUntilAvailable()
-  }, [])
+    async function fetchStream(retries) {
+      if (retries < 10) {
+        try {
+          const response = await fetch(`http://localhost:8000/cameras/${id}/ready`)
+          if (response.status === 200) {
+            const camera = await response.json()
+            setConfig(camera)
+            setUrl(`http://localhost:8000/${camera.active_playlist}`)
+            setIsLoading(false)
+          } else {
+            setRetries(retries + 1)
+          }
+        } catch (err) {
+          console.log(JSON.stringify(err))
+        }
+      } // TODO: Add error handling if/when we hit max retries
+    }
+    const timeoutID = setTimeout(fetchStream, 2000, retries)
+    return () => clearTimeout(timeoutID)
+  }, [id, retries])
 
   if (isLoading) {
     return <div>Loading Stream...</div>
