@@ -120,7 +120,7 @@ async def get_playlist(id: int, date: str, playlist: str):
     )
 
 
-@router.get("/{id}/segment")
+@router.get("/{id}/segments/{date}/{filename}")
 async def get_segment(id: int, date: str, filename: str):
     return FileResponse(
         path=f"{settings.storage_dir}/cameras/{id}/segments/{date}/{filename}",

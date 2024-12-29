@@ -125,7 +125,7 @@ class CameraProcess(Process):
 
     def _get_segment_url(self):
         """Get the segment url for the HLS playlist."""
-        return f"/cameras/{self.id}/segment?date={self._get_date()}&filename="
+        return f"/cameras/{self.id}/segments/{self._get_date()}/"
 
     def _next_playlist(self):
         """Get the next active HLS playlist."""
