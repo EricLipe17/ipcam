@@ -125,11 +125,11 @@ class CameraProcess(Process):
 
     def _get_segment_url(self):
         """Get the segment url for the HLS playlist."""
-        return f"/cameras/{self.id}/segments/{self._get_date()}/"
+        return f"/cameras/{self.id}/segment?date={self._get_date()}&filename="
 
     def _next_playlist(self):
         """Get the next active HLS playlist."""
-        return f"cameras/{self.id}/segments/{self._get_date()}/output.m3u8"
+        return f"cameras/{self.id}/{self._get_date()}/output.m3u8"
 
     def _get_video_stream(self, input_video_stream):
         """Get new av video stream from an input stream template."""

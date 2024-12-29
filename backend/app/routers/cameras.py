@@ -113,16 +113,16 @@ async def add_camera(py_cam_create: CameraCreate, db_session: DBSession):
 
 
 @router.get("/{id}/{date}/{playlist}")
-async def get_playlist(id: str, date: str, playlist: str):
+async def get_playlist(id: int, date: str, playlist: str):
     return FileResponse(
         path=f"{settings.storage_dir}/cameras/{id}/segments/{date}/{playlist}",
         filename=playlist,
     )
 
 
-@router.get("/{id}/segments/{date}/{segment}")
-async def get_segment(id: str, date: str, segment: str):
+@router.get("/{id}/segment")
+async def get_segment(id: int, date: str, filename: str):
     return FileResponse(
-        path=f"{settings.storage_dir}/cameras/{id}/segments/{date}/{segment}",
-        filename=segment,
+        path=f"{settings.storage_dir}/cameras/{id}/segments/{date}/{filename}",
+        filename=filename,
     )
