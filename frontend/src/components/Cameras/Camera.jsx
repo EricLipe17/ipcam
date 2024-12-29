@@ -57,6 +57,19 @@ const Camera = ({ cameraConfig }) => {
         controls
         volume={0}
         muted={true}
+        config={{
+          file: {
+            hlsOptions: {
+              liveSyncDurationCount: 1,
+              maxMaxBufferLength: 320,
+              backBufferLength: 300,
+              maxBufferLength: 2,
+              frontBufferFlushThreshold: 2,
+              maxBufferSize: 15,
+              debug: true
+            }
+          }
+        }}
         onStart={() => {
           console.log("In onStart.")
         }}
