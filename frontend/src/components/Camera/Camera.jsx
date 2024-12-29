@@ -44,71 +44,64 @@ const Camera = ({ id }) => {
 
   return (
     <div>
-      {errorMsg !== "" ? (<div
-        style={{
-          display: "flex",
-          margin: "auto",
-          width: "50%",
-          color: "red",
-          textAlign: "center",
-        }}
-      >{errorMsg}</div>) : (
-        <>
-          <div style={{
-            display: "flex",
-            justifyContent: "space-between",
-            background: "black",
-            border: "2px solid white",
-          }}>
-            <span>ID: {id}</span>
-            <span>Name: {config.name}</span>
-            {config.location && <span>Location: {config.location}</span>}
-          </div>
-          <ReactPlayer
-            url={url}
-            playing={playing}
-            controls
-            volume={0}
-            muted={true}
-            config={{
-              file: {
-                hlsOptions: {
-                  liveSyncDurationCount: 1,
-                  debug: true,
-                  // One of the commented options below causes buffering issues
-                  // maxMaxBufferLength: 320,
-                  // backBufferLength: 300,
-                  // maxBufferLength: 2,
-                  // frontBufferFlushThreshold: 2,
-                  // maxBufferSize: 15,
+      {errorMsg !== "" ? (<div style={{ color: "red", }}>{errorMsg}</div>) :
+        (
+          <>
+            <div style={{
+              display: "flex",
+              justifyContent: "space-between",
+              background: "black",
+              border: "2px solid white",
+            }}>
+              <span>ID: {id}</span>
+              <span>Name: {config.name}</span>
+              {config.location && <span>Location: {config.location}</span>}
+            </div>
+            <ReactPlayer
+              url={url}
+              playing={playing}
+              controls
+              volume={0}
+              muted={true}
+              config={{
+                file: {
+                  hlsOptions: {
+                    liveSyncDurationCount: 1,
+                    debug: true,
+                    // One of the commented options below causes buffering issues
+                    // maxMaxBufferLength: 320,
+                    // backBufferLength: 300,
+                    // maxBufferLength: 2,
+                    // frontBufferFlushThreshold: 2,
+                    // maxBufferSize: 15,
+                  }
                 }
-              }
-            }}
-            onStart={() => {
-              console.log("In onStart.")
-            }}
-            onReady={() => {
-              console.log("In onReady.")
-            }}
-            onError={(e) => {
-              console.log(`In onError: ${JSON.stringify(e, null, 4)}`)
-            }}
-            onPlay={() => setPlaying(true)}
-            onPause={() => setPlaying(false)}
-            onEnded={() => {
-              setIsLoading(true)
-              // Use this to get the next playlist to continue the livestream
-              fetch(`http://localhost:8000/cameras/${id}/`).then(response => response.json())
-                .then(camera => {
-                  setUrl(`http://localhost:8000/${camera.active_playlist}`)
-                  setPlaying(true)
-                  setConfig(camera)
-                  setIsLoading(false)
-                })
-            }}
-          />
-        </>
-      )
+              }}
+              onStart={() => {
+                console.log("In onStart.")
+              }}
+              onReady={() => {
+                console.log("In onReady.")
+              }}
+              onError={(e) => {
+                console.log(`In onError: ${JSON.stringify(e, null, 4)}`)
+              }}
+              onPlay={() => setPlaying(true)}
+              onPause={() => setPlaying(false)}
+              onEnded={() => {
+                setIsLoading(true)
+                // Use this to get the next playlist to continue the livestream
+                fetch(`http://localhost:8000/cameras/${id}/`).then(response => response.json())
+                  .then(camera => {
+                    setUrl(`http://localhost:8000/${camera.active_playlist}`)
+                    setPlaying(true)
+                    setConfig(camera)
+                    setIsLoading(false)
+                  })
+              }}
+            />
+          </>
+        )
       }
     </div >
   );
