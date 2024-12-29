@@ -14,7 +14,7 @@ import {
 } from "@dnd-kit/sortable";
 
 import AddCameraModal from './AddCameraModal';
-import Camera from './Camera';
+import Camera from '../Camera/Camera';
 import Grid from '../Grid/Grid';
 import SortableItem from '../SortableItem/SortableItem';
 
