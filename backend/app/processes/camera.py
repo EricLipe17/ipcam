@@ -190,7 +190,7 @@ class CameraProcess(Process):
         # Get the camera from the DB to update it as the recording progresses.
         self._send_message(f"Getting DB session.")
         db_session = next(get_session())
-        db_cam = db_session.get(Camera, self.id)
+        py_cam = db_session.get(Camera, self.id)
         self._send_message(f"DB session acquired.")
 
         # Create the AV camera
@@ -203,8 +203,8 @@ class CameraProcess(Process):
 
         # Set the DB camera's active playlist and recording flag
         self._send_message(f"Setting active playlist.")
-        db_cam.active_playlist = self._next_playlist()
-        db_cam.is_recording = True
+        py_cam.active_playlist = self._next_playlist()
+        py_cam.is_recording = True
         db_session.commit()
         self._send_message(f"Playlist set.")
 
@@ -243,8 +243,8 @@ class CameraProcess(Process):
 
                     # Update the playlist in the DB camera since we are rolling it over.
                     self._send_message(f"Updating DB with new info.")
-                    db_cam = db_session.get(Camera, self.id)
-                    db_cam.active_playlist = self._next_playlist()
+                    py_cam = db_session.get(Camera, self.id)
+                    py_cam.active_playlist = self._next_playlist()
                     db_session.commit()
 
                 for packet in out_video_stream.encode(frame):
