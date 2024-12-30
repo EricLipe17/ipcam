@@ -9,6 +9,7 @@ function AddCameraModal({ setCamAdded }) {
     name: '',
     url: '',
     location: '', // Optional
+    force_transcode: false, // Optional
   });
 
   const handleShowModal = () => {
@@ -106,6 +107,11 @@ function AddCameraModal({ setCamAdded }) {
         <label>
           Location:
           <input type="text" name="location" value={inputs.location} onChange={handleChange} />
+        </label>
+        <br />
+        <label>
+          Force Transcode:
+          <input type="checkbox" name="force_transcode" value={inputs.force_transcode} onChange={handleChange} />
         </label>
         <br />
         <button type="submit" onClick={handleAdd}>Add</button>
