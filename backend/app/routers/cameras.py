@@ -1,7 +1,7 @@
 from app.db import DBSession
 from app.db.models import AudioStream, VideoStream, Camera, CameraCreate
 from app.dependencies import get_current_active_user
-from app.processes.camera import CameraProcess
+from app.processes.camera import AVCamera
 from app import process_manager
 from app.settings.local import settings
 
@@ -69,7 +69,7 @@ async def ready(id: int, db_session: DBSession):
 async def add_camera(py_cam_create: CameraCreate, db_session: DBSession):
     try:
         # Check that we can query the camera and collect some metadata. ## TODO: Change this block to "get_av_streams" to return the main audio and video streams
-        py_video_stream, py_audio_stream, err_msg = CameraProcess.probe_camera(
+        py_video_stream, py_audio_stream, err_msg = AVCamera.probe_camera(
             py_cam_create.url
         )
         if err_msg:

@@ -7,7 +7,7 @@ from typing import List, Dict
 
 from app.db import get_session
 from app.db.models import Camera
-from app.processes import CameraProcess
+from app.processes import AVCamera
 from app.processes.enums import MessageType, ProcessType
 
 logger = logging.getLogger(__name__)
@@ -73,7 +73,7 @@ class ProcessManager:
             logger.info(f"Adding new camera with id:{id}.")
 
             parent_conn, child_conn = mp.Pipe()
-            camera = CameraProcess(
+            camera = AVCamera(
                 name=name, id=id, url=url, connection=child_conn, daemon=True
             )
             camera.start()
@@ -95,8 +95,8 @@ class ProcessManager:
     def _copy_process(self, dead_proc, new_conn):
         """Create a copy of a dead process based on the process type."""
         match dead_proc.proc_type:
-            case ProcessType.Camera:
-                new_camera = CameraProcess(
+            case ProcessType.AVCamera:
+                new_camera = AVCamera(
                     url=dead_proc.url,
                     id=dead_proc.id,
                     connection=new_conn,

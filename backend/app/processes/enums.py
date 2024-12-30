@@ -7,4 +7,4 @@ class MessageType(Enum):
 
 
 class ProcessType(Enum):
-    Camera = 1
+    AVCamera = 1

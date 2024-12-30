@@ -6,6 +6,8 @@ from app.settings.local import settings
 
 import av
 from av.container.input import InputContainer
+from av.container.output import OutputContainer
+from av.stream import Stream
 from datetime import datetime
 import logging
 from multiprocessing import Process
@@ -13,24 +15,40 @@ from multiprocessing.connection import Connection
 import os
 import pytz
 from sqlalchemy.exc import SQLAlchemyError
+from sqlmodel import Session
 import time
 
 
-class CameraProcess(Process):
+class AVCamera(Process):
     url: str
     id: int
     connection: Connection
     camera: InputContainer
+    force_transcode: bool
+    output_container: OutputContainer
+    output_streams: dict[int, Stream]
     playlist_name: str
     output_kwargs: dict
+    hls_opts: dict
+    db_session: Session
     proc_type: ProcessType
 
-    def __init__(self, url: str, id: int, connection: Connection, *args, **kwargs):
+    def __init__(
+        self,
+        url: str,
+        id: int,
+        connection: Connection,
+        force_transcode: bool = True,
+        *args,
+        **kwargs,
+    ):
         super().__init__(*args, **kwargs)
         self.url = url
         self.id = id
         self.connection = connection
         self.camera = None
+        self.force_transcode = force_transcode
+        self.output_streams = dict()
         self.output_container = None
         self.playlist_name = "output.m3u8"
         self.output_kwargs = {
@@ -43,10 +61,12 @@ class CameraProcess(Process):
                 "hls_flags": "append_list",
             },
         }
-        self.proc_type = ProcessType.Camera
+        self.hls_opts = self.output_kwargs.get("options")
+        self.db_session = None
+        self.proc_type = ProcessType.AVCamera
 
     @staticmethod
-    def get_py_video_stream(av_video_stream):
+    def _get_py_video_stream(av_video_stream):
         """Get DB representation of av video stream."""
         if not av_video_stream:
             return None
@@ -67,7 +87,7 @@ class CameraProcess(Process):
         return py_video_stream
 
     @staticmethod
-    def get_py_audio_stream(av_audio_stream):
+    def _get_py_audio_stream(av_audio_stream):
         """Get DB representation of the av audio stream."""
         # TODO: Implement this correctly
         if not av_audio_stream:
@@ -92,8 +112,8 @@ class CameraProcess(Process):
             av_camera = av.open(url)
             av_video_stream = av_camera.streams.best("video")
             av_audio_stream = av_camera.streams.best("audio")
-            py_video_stream = CameraProcess.get_py_video_stream(av_video_stream)
-            py_audio_stream = CameraProcess.get_py_audio_stream(av_audio_stream)
+            py_video_stream = AVCamera._get_py_video_stream(av_video_stream)
+            py_audio_stream = AVCamera._get_py_audio_stream(av_audio_stream)
             return (py_video_stream, py_audio_stream, "")
         except av.OSError:
             return (
@@ -112,10 +132,11 @@ class CameraProcess(Process):
         finally:
             av_camera.close()
 
-    def _flush_stream(self, stream, output):
-        """Flush all data in the stream."""
-        for packet in stream.encode():
-            output.mux(packet)
+    def _flush_streams(self):
+        """Flush all data in the streams."""
+        for stream in self.output_streams.values():
+            for packet in stream.encode():
+                self.output_container.mux(packet)
 
     def _get_date(self):
         """Get date string: '%Y-%m-%d'."""
@@ -132,19 +153,6 @@ class CameraProcess(Process):
     def _next_playlist(self):
         """Get the next active HLS playlist."""
         return f"cameras/{self.id}/segments/{self._get_date()}/output.m3u8"
-
-    def _get_video_stream(self, input_video_stream):
-        """Get new av video stream from an input stream template."""
-        stream = self.output_container.add_stream(codec_name="h264", options={})
-        # The options are required for transcoding to work
-        stream.height = input_video_stream.height
-        stream.width = input_video_stream.width
-        stream.sample_aspect_ratio = input_video_stream.sample_aspect_ratio
-        stream.codec_context.framerate = input_video_stream.codec_context.framerate
-        stream.codec_context.gop_size = 10 * stream.codec_context.framerate
-        stream.pix_fmt = input_video_stream.pix_fmt
-        stream.time_base = input_video_stream.time_base
-        return stream
 
     def _seconds_until_midnight(self):
         """Calculates the time until midnight in the specified timezone."""
@@ -172,11 +180,147 @@ class CameraProcess(Process):
             )
         )
 
-    def close(self, db_session):
+    def _set_best_streams(self):
+        self.output_streams.clear()
+        in_best_video = self.camera.streams.best("video")
+        in_best_audio = self.camera.streams.best("audio")
+
+        if not self.force_transcode:
+            out_best_video = self.output_container.add_stream(template=in_best_video)
+            self.output_streams[in_best_audio.index] = out_best_video
+
+            if in_best_audio is not None:
+                out_best_audio = self.output_container.add_stream(
+                    template=in_best_audio
+                )
+                self.output_streams[in_best_audio.index] = out_best_audio
+        else:
+            out_best_video = self.output_container.add_stream(codec_name="h264")
+            out_best_video.height = in_best_video.height
+            out_best_video.width = in_best_video.width
+            out_best_video.sample_aspect_ratio = in_best_video.sample_aspect_ratio
+            out_best_video.codec_context.framerate = (
+                in_best_video.codec_context.framerate
+            )
+            out_best_video.pix_fmt = in_best_video.pix_fmt
+            out_best_video.time_base = in_best_video.time_base
+            out_best_video.codec_context.bit_rate = in_best_video.codec_context.bit_rate
+            if in_best_audio is not None:
+                out_best_audio = self.output_container.add_stream(codec_name="aac")
+                out_best_audio.time_base = in_best_audio.time_base
+                out_best_audio.sample_rate = in_best_audio.sample_rate
+                out_best_audio.layout = in_best_audio.layout
+                out_best_audio.format = in_best_audio.format
+
+    def _roll_playlist(self):
+        # This playlist has reached it's max size, roll it over and start the next playlist.
+        self._send_message(
+            f"Playlist max size reached. Rolling over to a new playlist."
+        )
+        self._send_message(f"Flushing streams.")
+        self._flush_streams()
+        self.output_container.close()
+
+        # Update/create storage path and update playlist segment path
+        path = self._get_path()
+        self.hls_opts.update({"hls_base_url": self._get_segment_url()})
+        os.makedirs(path, exist_ok=True)
+
+        # Open new output container and add the camera's best streams
+        self._send_message(f"Opening new output container.")
+        self.output_container = av.open(
+            **self.output_kwargs, file=f"{path}/{self.playlist_name}"
+        )
+        self._set_best_streams()
+
+        # Update the playlist in the DB camera since we are rolling it over.
+        self._send_message(f"Updating DB with new info.")
+        py_cam = self.db_session.get(Camera, self.id)
+        py_cam.active_playlist = self._next_playlist()
+        self.db_session.commit()
+
+    def _remux(self):
+        self.hls_opts.update({"hls_base_url": self._get_segment_url()})
+        time_to_record = self._seconds_until_midnight()
+        duration_recorded = 0
+        for packet in self.camera.demux():
+            try:
+                if packet.dts is None:
+                    continue
+
+                if duration_recorded >= time_to_record:
+                    self._roll_playlist()
+                    duration_recorded = 0
+                    time_to_record = self._seconds_until_midnight()
+
+                stream = self.output_streams.get(packet.stream_index, None)
+                if stream:
+                    packet.stream = stream
+                    self.output_container.mux(packet)
+            except SQLAlchemyError:
+                self._send_message(
+                    f"Encountered a sqlalchemy error while remuxing, continuing to record.",
+                    level=logging.WARNING,
+                )
+            except av.FFmpegError as e:
+                self.close(self.db_session)
+                self._send_message(
+                    message=(
+                        "Encountered Ffmpeg exception while remuxing the recording. "
+                        f"Closing all resources and stopping. \n{e}"
+                    ),
+                    level=logging.ERROR,
+                    m_type=MessageType.Error,
+                )
+            except Exception as e:
+                self.close(self.db_session)
+                self._send_message(
+                    message=f"Encountered generic exception while remuxing recording. Closing all resources and stopping. \n{e}",
+                    level=logging.ERROR,
+                    m_type=MessageType.Error,
+                )
+
+    def _transcode(self):
+        for camera_packet in self.camera.demux():
+            try:
+                if camera_packet.dts is None:
+                    continue
+
+                if duration_recorded >= time_to_record:
+                    self._roll_playlist()
+                    duration_recorded = 0
+                    time_to_record = self._seconds_until_midnight()
+
+                stream = self.output_streams.get(camera_packet.stream_index, None)
+                if stream:
+                    for camera_frame in camera_packet.decode():
+                        for output_pkt in stream.encode(camera_frame):
+                            self.output_container.mux(output_pkt)
+            except SQLAlchemyError:
+                self._send_message(
+                    f"Encountered a sqlalchemy error while transcoding, continuing to record.",
+                    level=logging.WARNING,
+                )
+            except av.FFmpegError as e:
+                self.close()
+                self._send_message(
+                    message=f"Encountered Ffmpeg exception while transcoding recording. Closing all resources and stopping. \n{e}",
+                    level=logging.ERROR,
+                    m_type=MessageType.Error,
+                )
+            except Exception as e:
+                self.close()
+                self._send_message(
+                    message=f"Encountered generic exception while transcoding recording. Closing all resources and stopping. \n{e}",
+                    level=logging.ERROR,
+                    m_type=MessageType.Error,
+                )
+
+    def close(self):
         """Close all av resources."""
-        db_cam = db_session.get(Camera, self.id)
+        db_cam = self.db_session.get(Camera, self.id)
         db_cam.is_recording = False
-        db_session.commit()
+        self.db_session.commit()
         self.camera.close()
         self.output_container.close()
 
@@ -189,23 +333,20 @@ class CameraProcess(Process):
 
         # Get the camera from the DB to update it as the recording progresses.
         self._send_message(f"Getting DB session.")
-        db_session = next(get_session())
-        py_cam = db_session.get(Camera, self.id)
+        self.db_session = next(get_session())
+        py_cam = self.db_session.get(Camera, self.id)
         self._send_message(f"DB session acquired.")
-
-        # Create the AV camera
-        hls_opts = self.output_kwargs.get("options")
 
         # Set the HLS url to locate the video segments and create the physical storage location of the segments.
         path = self._get_path()
-        hls_opts.update({"hls_base_url": self._get_segment_url()})
+        self.hls_opts.update({"hls_base_url": self._get_segment_url()})
         os.makedirs(path, exist_ok=True)
 
         # Set the DB camera's active playlist and recording flag
         self._send_message(f"Setting active playlist.")
         py_cam.active_playlist = self._next_playlist()
         py_cam.is_recording = True
-        db_session.commit()
+        self.db_session.commit()
         self._send_message(f"Playlist set.")
 
         # Open the HLS output container and begin recording data from the camera.
@@ -213,58 +354,10 @@ class CameraProcess(Process):
         self.output_container = av.open(
             **self.output_kwargs, file=f"{path}/{self.playlist_name}"
         )
-        cam_video_stream = self.camera.streams.best("video")
-        out_video_stream = self._get_video_stream(cam_video_stream)
+        self._set_best_streams()
 
-        time_to_record = self._seconds_until_midnight()
         self._send_message(f"Recording.")
-        for frame in self.camera.decode(cam_video_stream):
-            try:
-                if frame.dts is None:
-                    continue
-
-                if int(frame.time) % time_to_record == 0 and frame.time > 1:
-                    # This playlist has reached it's max size, roll it over and start the next playlist.
-                    self._send_message(
-                        f"Playlist max size reached. Rolling over to a new playlist."
-                    )
-                    self._send_message(f"Flushing streams.")
-                    self._flush_stream(out_video_stream, self.output_container)
-                    self.output_container.close()
-                    path = self._get_path()
-                    hls_opts.update({"hls_base_url": self._get_segment_url()})
-                    os.makedirs(path, exist_ok=True)
-
-                    self._send_message(f"Opening new output container.")
-                    self.output_container = av.open(
-                        **self.output_kwargs, file=f"{path}/{self.playlist_name}"
-                    )
-                    out_video_stream = self._get_video_stream(cam_video_stream)
-
-                    # Update the playlist in the DB camera since we are rolling it over.
-                    self._send_message(f"Updating DB with new info.")
-                    py_cam = db_session.get(Camera, self.id)
-                    py_cam.active_playlist = self._next_playlist()
-                    db_session.commit()
-
-                for packet in out_video_stream.encode(frame):
-                    self.output_container.mux(packet)
-            except SQLAlchemyError:
-                self._send_message(
-                    f"Encountered a sqlalchemy error, continuing to record.",
-                    level=logging.WARNING,
-                )
-            except av.FFmpegError as e:
-                self.close(db_session)
-                self._send_message(
-                    message=f"Encountered Ffmpeg exception while recording. Closing all resources and stopping. \n{e}",
-                    level=logging.ERROR,
-                    m_type=MessageType.Error,
-                )
-            except Exception as e:
-                self.close(db_session)
-                self._send_message(
-                    message=f"Encountered generic exception while recording. Closing all resources and stopping. \n{e}",
-                    level=logging.ERROR,
-                    m_type=MessageType.Error,
-                )
+        if self.force_transcode:
+            self._transcode()
+        else:
+            self._remux()
