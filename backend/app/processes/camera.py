@@ -213,7 +213,7 @@ class CameraProcess(Process):
         self.output_container = av.open(
             **self.output_kwargs, file=f"{path}/{self.playlist_name}"
         )
-        cam_video_stream = self.camera.streams.video[0]
+        cam_video_stream = self.camera.streams.best("video")
         out_video_stream = self._get_video_stream(cam_video_stream)
 
         time_to_record = self._seconds_until_midnight()
