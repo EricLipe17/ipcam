@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: f838bfdfdf98
+Revision ID: ffa83c33c7c8
 Revises: 
-Create Date: 2024-12-25 14:29:52.328520
+Create Date: 2024-12-30 03:44:56.594353
 
 """
 from typing import Sequence, Union
@@ -13,7 +13,7 @@ import sqlmodel
 
 
 # revision identifiers, used by Alembic.
-revision: str = 'f838bfdfdf98'
+revision: str = 'ffa83c33c7c8'
 down_revision: Union[str, None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -25,6 +25,7 @@ def upgrade() -> None:
     sa.Column('name', sqlmodel.sql.sqltypes.AutoString(), nullable=False),
     sa.Column('url', sqlmodel.sql.sqltypes.AutoString(), nullable=False),
     sa.Column('location', sqlmodel.sql.sqltypes.AutoString(), nullable=True),
+    sa.Column('force_transcode', sa.Boolean(), nullable=True),
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('active_playlist', sqlmodel.sql.sqltypes.AutoString(), nullable=True),
     sa.Column('segment_length', sa.Integer(), nullable=False),
