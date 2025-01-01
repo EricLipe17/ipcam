@@ -38,7 +38,7 @@ class AVCamera(Process):
         url: str,
         id: int,
         connection: Connection,
-        force_transcode: bool = True,
+        force_transcode: bool = False,
         *args,
         **kwargs,
     ):
@@ -106,8 +106,6 @@ class AVCamera(Process):
     def probe_camera(url: str):
         """Try to open connection to camera and return audio/video metadata upon success."""
         av_camera = None
-        py_video_stream = None
-        py_audio_stream = None
         try:
             av_camera = av.open(url)
             av_video_stream = av_camera.streams.best("video")
@@ -130,7 +128,8 @@ class AVCamera(Process):
                 f"An unknown exception occurred: {e}",
             )
         finally:
-            av_camera.close()
+            if av_camera is not None:
+                av_camera.close()
 
     def _flush_streams(self):
         """Flush all data in the streams."""
@@ -180,6 +179,25 @@ class AVCamera(Process):
             )
         )
 
+    def _get_bitrate(self, input_stream):
+        if input_stream.bit_rate:
+            return input_stream.bit_rate
+
+        if input_stream.type == "video":
+            # Use the Kush Gauge to calculate bitrate for video
+            # The general expectation is there is not a lot of motion in the cameras view.
+            motion_complexity = 1.1
+            return (
+                input_stream.codec_context.framerate
+                * input_stream.height
+                * input_stream.width
+                * motion_complexity
+                * 0.07
+            )
+        else:
+            # Default to 128 Kb/s since we are streaming and not audiophiles.
+            return 128000
+
     def _set_best_streams(self):
         self.output_streams.clear()
         in_best_video = self.camera.streams.best("video")
@@ -187,7 +205,7 @@ class AVCamera(Process):
 
         if not self.force_transcode:
             out_best_video = self.output_container.add_stream(template=in_best_video)
-            self.output_streams[in_best_audio.index] = out_best_video
+            self.output_streams[in_best_video.index] = out_best_video
 
             if in_best_audio is not None:
                 out_best_audio = self.output_container.add_stream(
@@ -204,13 +222,18 @@ class AVCamera(Process):
             )
             out_best_video.pix_fmt = in_best_video.pix_fmt
             out_best_video.time_base = in_best_video.time_base
-            out_best_video.codec_context.bit_rate = in_best_video.codec_context.bit_rate
+            out_best_video.bit_rate = self._get_bitrate(in_best_video)
+            self.output_streams[in_best_video.index] = out_best_video
+
             if in_best_audio is not None:
                 out_best_audio = self.output_container.add_stream(codec_name="aac")
                 out_best_audio.time_base = in_best_audio.time_base
+                out_best_audio.rate = in_best_audio.rate
                 out_best_audio.sample_rate = in_best_audio.sample_rate
                 out_best_audio.layout = in_best_audio.layout
                 out_best_audio.format = in_best_audio.format
+                out_best_audio.bit_rate = self._get_bitrate(in_best_audio)
+                self.output_streams[in_best_audio.index] = out_best_audio
 
     def _roll_playlist(self):
         # This playlist has reached it's max size, roll it over and start the next playlist.
@@ -240,7 +263,7 @@ class AVCamera(Process):
         self.db_session.commit()
 
     def _remux(self):
-        self.hls_opts.update({"hls_base_url": self._get_segment_url()})
+        # TODO: Actually calculate duration recorded
         time_to_record = self._seconds_until_midnight()
         duration_recorded = 0
         for packet in self.camera.demux():
@@ -281,6 +304,9 @@ class AVCamera(Process):
                 )
 
     def _transcode(self):
+        # TODO: Actually calculate duration recorded
+        time_to_record = self._seconds_until_midnight()
+        duration_recorded = 0
         for camera_packet in self.camera.demux():
             try:
                 if camera_packet.dts is None:
@@ -358,6 +384,10 @@ class AVCamera(Process):
 
         self._send_message(f"Recording.")
         if self.force_transcode:
+            self._send_message(
+                "Transcoding camera data to HEVC and AAC for video and audio respectively."
+            )
             self._transcode()
         else:
+            self._send_message("Remuxing camera data for camera.")
             self._remux()

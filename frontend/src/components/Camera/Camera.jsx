@@ -13,7 +13,7 @@ const Camera = ({ id }) => {
 
   useEffect(() => {
     async function fetchStream(retries) {
-      if (retries < 1) {
+      if (retries < 10) {
         try {
           const response = await fetch(`http://localhost:8000/cameras/${id}/ready`)
           if (response.status === 200) {

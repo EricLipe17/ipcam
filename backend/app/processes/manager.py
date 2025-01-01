@@ -65,7 +65,7 @@ class ProcessManager:
             self.retries[id] = 0
             return None
 
-    def add_camera(self, id: int, name: str, url: str):
+    def add_camera(self, py_cam: Camera):
         """Create and add a camera process to the process pool."""
         try:
             if id in self.processes:
@@ -74,22 +74,27 @@ class ProcessManager:
 
             parent_conn, child_conn = mp.Pipe()
             camera = AVCamera(
-                name=name, id=id, url=url, connection=child_conn, daemon=True
+                name=py_cam.name,
+                id=py_cam.id,
+                url=py_cam.url,
+                force_transcode=py_cam.force_transcode,
+                connection=child_conn,
+                daemon=True,
             )
             camera.start()
         except Exception:
             if camera and camera.is_alive():
                 logger.warning(
-                    f"Camera recording process for id:{id} was alive but killing it due to unknown exception."
+                    f"Camera recording process for id:{py_cam.id} was alive but killing it due to unknown exception."
                 )
                 camera.kill()
             msg = f"Caught exception trying to start the recording."
             logger.exception(msg)
             return msg
         else:
-            self.processes[id] = camera
-            self.connections[id] = parent_conn
-            self.retries[id] = 0
+            self.processes[py_cam.id] = camera
+            self.connections[py_cam.id] = parent_conn
+            self.retries[py_cam.id] = 0
             return None
 
     def _copy_process(self, dead_proc, new_conn):
@@ -99,6 +104,7 @@ class ProcessManager:
                 new_camera = AVCamera(
                     url=dead_proc.url,
                     id=dead_proc.id,
+                    force_transcode=dead_proc.force_transcode,
                     connection=new_conn,
                     daemon=True,
                 )
