@@ -1,16 +1,14 @@
 import Home from "./components/Home";
 import Cameras from "./components/Cameras/Cameras"
+import Navbar from "./components/Navbar/Navbar";
 
-import { Route, Routes, NavLink, HashRouter } from "react-router-dom";
+import { Route, Routes, HashRouter } from "react-router-dom";
 
 const App = () => {
   return (
     <HashRouter>
       <div className="App">
-        <ul className="header">
-          <li><NavLink to="/">Home</NavLink></li>
-          <li><NavLink to="/cameras">Cameras</NavLink></li>
-        </ul>
+        <Navbar />
         <div className="content">
           <Routes>
             <Route exact path="/" element={<Home />}></Route>
