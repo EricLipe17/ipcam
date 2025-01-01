@@ -70,12 +70,11 @@ const Camera = ({ id }) => {
                   hlsOptions: {
                     liveSyncDurationCount: 1,
                     debug: true,
-                    // One of the commented options below causes buffering issues
-                    // maxMaxBufferLength: 320,
-                    // backBufferLength: 300,
-                    // maxBufferLength: 2,
-                    // frontBufferFlushThreshold: 2,
-                    // maxBufferSize: 15,
+                    maxBufferLength: 30,
+                    maxMaxBufferLength: 30,
+                    backBufferLength: 0,
+                    frontBufferFlushThreshold: 30,
+                    maxBufferSize: 10 // MB
                   }
                 }
               }}

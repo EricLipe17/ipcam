@@ -5,7 +5,6 @@ const Grid = ({ children, columns }) => {
         display: 'grid',
         gridTemplateColumns: `repeat(${columns}, 1fr)`,
         gridGap: 10,
-        margin: '100px auto',
       }}
     >
       {children}
