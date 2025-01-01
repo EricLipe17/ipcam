@@ -1,5 +1,5 @@
 import ReactPlayer from 'react-player/lazy'
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 const Camera = ({ id }) => {
   const [playing, setPlaying] = useState(true);
@@ -7,6 +7,7 @@ const Camera = ({ id }) => {
   const [retries, setRetries] = useState(0)
   const [isLoading, setIsLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState("")
+  const playerRef = useRef()
 
   // Note: hls.js requires a path based URL. Adding query parameters adds range headers which breaks the functionality.
   const [url, setUrl] = useState('');
@@ -58,6 +59,7 @@ const Camera = ({ id }) => {
               {config.location && <span>Location: {config.location}</span>}
             </div>
             <ReactPlayer
+              ref={playerRef}
               url={url}
               playing={playing}
               controls
