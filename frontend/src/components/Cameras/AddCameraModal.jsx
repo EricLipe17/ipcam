@@ -11,6 +11,7 @@ function AddCameraModal({ setCamAdded }) {
     location: '', // Optional
     force_transcode: false, // Optional
   });
+  const checkBoxName = "force_transcode"
 
   const handleShowModal = () => {
     setShowModal(true);
@@ -21,10 +22,17 @@ function AddCameraModal({ setCamAdded }) {
   };
 
   const handleChange = (event) => {
-    setInputs({
-      ...inputs,
-      [event.target.name]: event.target.value,
-    });
+    if (event.target.name === checkBoxName) {
+      setInputs({
+        ...inputs,
+        [event.target.name]: event.target.checked,
+      });
+    } else {
+      setInputs({
+        ...inputs,
+        [event.target.name]: event.target.value,
+      });
+    }
   };
 
   const isValid = () => {
@@ -111,7 +119,7 @@ function AddCameraModal({ setCamAdded }) {
         <br />
         <label>
           Force Transcode:
-          <input type="checkbox" name="force_transcode" value={inputs.force_transcode} onChange={handleChange} />
+          <input type="checkbox" name={checkBoxName} value={inputs.force_transcode} onChange={handleChange} />
         </label>
         <br />
         <button type="submit" onClick={handleAdd}>Add</button>

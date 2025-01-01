@@ -1,7 +1,7 @@
 from app.db import DBSession
 from app.db.models import AudioStream, VideoStream, Camera, CameraCreate
 from app.dependencies import get_current_active_user
-from app.processes.camera import CameraProcess
+from app.processes.camera import AVCamera
 from app import process_manager
 from app.settings.local import settings
 
@@ -69,7 +69,7 @@ async def ready(id: int, db_session: DBSession):
 async def add_camera(py_cam_create: CameraCreate, db_session: DBSession):
     try:
         # Check that we can query the camera and collect some metadata. ## TODO: Change this block to "get_av_streams" to return the main audio and video streams
-        py_video_stream, py_audio_stream, err_msg = CameraProcess.probe_camera(
+        py_video_stream, py_audio_stream, err_msg = AVCamera.probe_camera(
             py_cam_create.url
         )
         if err_msg:
@@ -83,17 +83,15 @@ async def add_camera(py_cam_create: CameraCreate, db_session: DBSession):
             **py_cam_create.model_dump(),
             is_recording=False,
         )
-        py_cam.video_streams.append(py_video_stream)
+        py_cam.video_stream = py_video_stream
         if py_audio_stream is not None:
-            py_cam.audio_streams.append(py_audio_stream)
+            py_cam.audio_stream = py_audio_stream
         db_session.add(py_cam)
         db_session.commit()
         db_session.refresh(py_cam)
 
         # Start recording the camera's data in a separate process.
-        err = process_manager.add_camera(
-            py_cam.id, py_cam_create.name, py_cam_create.url
-        )
+        err = process_manager.add_camera(py_cam)
         if err:
             # If we aren't recording, we should delete this camera from DB
             if py_cam in db_session:
@@ -106,8 +104,9 @@ async def add_camera(py_cam_create: CameraCreate, db_session: DBSession):
 
         return py_cam
     except Exception as e:
-        db_session.delete(py_cam)
-        db_session.commit()
+        if py_cam in db_session:
+            db_session.delete(py_cam)
+            db_session.commit()
         logger.exception("Unable to connect to camera due to generic exception.")
         raise HTTPException(
             detail=f"Unable to connect to camera due to generic exception: {e}.",
