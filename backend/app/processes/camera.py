@@ -203,16 +203,7 @@ class AVCamera(Process):
         in_best_video = self.camera.streams.best("video")
         in_best_audio = self.camera.streams.best("audio")
 
-        if not self.force_transcode:
-            out_best_video = self.output_container.add_stream(template=in_best_video)
-            self.output_streams[in_best_video.index] = out_best_video
-
-            if in_best_audio is not None:
-                out_best_audio = self.output_container.add_stream(
-                    template=in_best_audio
-                )
-                self.output_streams[in_best_audio.index] = out_best_audio
-        else:
+        if self.force_transcode:
             out_best_video = self.output_container.add_stream(codec_name="h264")
             out_best_video.height = in_best_video.height
             out_best_video.width = in_best_video.width
@@ -233,6 +224,15 @@ class AVCamera(Process):
                 out_best_audio.layout = in_best_audio.layout
                 out_best_audio.format = in_best_audio.format
                 out_best_audio.bit_rate = self._get_bitrate(in_best_audio)
+                self.output_streams[in_best_audio.index] = out_best_audio
+        else:
+            out_best_video = self.output_container.add_stream(template=in_best_video)
+            self.output_streams[in_best_video.index] = out_best_video
+
+            if in_best_audio is not None:
+                out_best_audio = self.output_container.add_stream(
+                    template=in_best_audio
+                )
                 self.output_streams[in_best_audio.index] = out_best_audio
 
     def _roll_playlist(self):
