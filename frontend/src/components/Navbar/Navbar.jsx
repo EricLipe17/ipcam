@@ -30,23 +30,20 @@ const Navbar = () => {
         </li>
         <li className="relative">
           <div className="grid grid-cols-2">
-            <Link to="/cameras" onClick={() => setDropdownOpen(false)} className="text-white hover:text-gold flex items-center">Cameras</Link>
+            <Link to="/cameras" onClick={() => setDropdownOpen(false)} className="text-white hover:text-gold">Cameras</Link>
             <button
               onClick={() => setDropdownOpen(!dropdownOpen)}
-              className="text-white hover:text-gold flex items-center"
+              className="text-white hover:text-gold"
             >
               <FaCaretDown className="ml-1" />
             </button>
           </div>
-
-          {true && (
-            <DropdownMenu
-              items={[
-                { value: "Add Camera", onClick: () => handleModal(true) },
-              ]}
-              open={dropdownOpen}
-              setOpen={setDropdownOpen} />
-          )}
+          <DropdownMenu
+            items={[
+              { value: "Add Camera", onClick: () => handleModal(true) },
+            ]}
+            open={dropdownOpen}
+            setOpen={setDropdownOpen} />
         </li>
       </ul>
       <AddCameraModal showModal={showModal} handleModal={handleModal} />
