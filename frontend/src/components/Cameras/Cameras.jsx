@@ -13,14 +13,12 @@ import {
   rectSortingStrategy
 } from "@dnd-kit/sortable";
 
-import AddCameraModal from './AddCameraModal';
 import Camera from '../Camera/Camera';
 import Grid from '../Grid/Grid';
 import SortableItem from '../SortableItem/SortableItem';
 
 const Cameras = () => {
   const [activeId, setActiveId] = useState(null);
-  const [camAdded, setCamAdded] = useState(false)
   const [cameras, setCameras] = useState([])
   const [width, setWidth] = useState(window.innerWidth);
 
@@ -62,7 +60,7 @@ const Cameras = () => {
     window.addEventListener("resize", handleResize);
     fetchCameras() // TODO: This is inneficient because the Camera component has to duplicate the request to ensure pureness and make sure the livestream for itself has officially been published.
     return () => window.removeEventListener("resize", handleResize);
-  }, [camAdded]);
+  }, []);
 
   return (
     <div className="bg-black-950 min-h-screen p-4">

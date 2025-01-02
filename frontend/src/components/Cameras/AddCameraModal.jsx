@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import ReactModal from 'react-modal';
+import { useNavigate } from 'react-router-dom';
 
-function AddCameraModal({ setCamAdded }) {
+function AddCameraModal() {
   const [showModal, setShowModal] = useState(false);
   const [errors, setErrors] = useState({});
   const [addError, setAddError] = useState("");
@@ -11,6 +11,7 @@ function AddCameraModal({ setCamAdded }) {
     location: '', // Optional
     transcode: false, // Optional
   });
+  const navigate = useNavigate();
   const checkBoxName = "transcode"
 
   const handleShowModal = () => {
@@ -75,7 +76,8 @@ function AddCameraModal({ setCamAdded }) {
       }
 
       setShowModal(false)
-      setCamAdded(true)
+      // TODO: the navigate only re-renders the Cameras component if the URL changes. If we are already on the cameras page, we need to force a re-render.
+      navigate('/cameras')
       return true
     } else {
       event.preventDefault();
@@ -147,7 +149,7 @@ function AddCameraModal({ setCamAdded }) {
                 Close
               </button>
               <button
-                onClick={handleHideModal}
+                onClick={handleAdd}
                 className="bg-gold text-black py-2 px-4 rounded hover:bg-white hover:text-black transition duration-300"
               >
                 Add

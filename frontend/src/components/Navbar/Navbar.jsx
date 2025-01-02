@@ -1,4 +1,4 @@
-import { NavLink } from "react-router-dom";
+import { Link, NavLink } from "react-router-dom";
 import { useState } from "react";
 import { FaCaretDown } from "react-icons/fa";
 
@@ -24,12 +24,7 @@ const Navbar = () => {
         </li>
         <li className="relative">
           <div className="grid grid-cols-2">
-            <button
-              onClick={() => setDropdownOpen(!dropdownOpen)}
-              className="text-white hover:text-gold flex items-center"
-            >
-              Cameras
-            </button>
+            <Link to="/cameras" onClick={() => setDropdownOpen(false)} className="text-white hover:text-gold flex items-center">Cameras</Link>
             <button
               onClick={() => setDropdownOpen(!dropdownOpen)}
               className="text-white hover:text-gold flex items-center"
@@ -41,7 +36,7 @@ const Navbar = () => {
           {dropdownOpen && (
             <ul className="absolute left-0 mt-2 w-48 bg-black border border-gray-700 rounded shadow-lg">
               <li>
-                <AddCameraModal setCamAdded={null} />
+                <AddCameraModal />
               </li>
             </ul>
           )}
