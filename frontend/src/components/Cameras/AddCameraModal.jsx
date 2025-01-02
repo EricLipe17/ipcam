@@ -9,9 +9,9 @@ function AddCameraModal({ setCamAdded }) {
     name: '',
     url: '',
     location: '', // Optional
-    force_transcode: false, // Optional
+    transcode: false, // Optional
   });
-  const checkBoxName = "force_transcode"
+  const checkBoxName = "transcode"
 
   const handleShowModal = () => {
     setShowModal(true);
@@ -83,49 +83,79 @@ function AddCameraModal({ setCamAdded }) {
     }
   };
 
-  const customStyles = {
-    content: {
-      top: '35%',
-      left: '50%',
-      right: 'auto',
-      bottom: 'auto',
-      marginRight: '-50%',
-      width: '60%',
-      transform: 'translate(-40%, -10%)',
-    },
-  };
-
   return (
     <div>
-      <button onClick={handleShowModal}>Add Camera</button>
-      <ReactModal isOpen={showModal} ariaHideApp={false} style={customStyles}>
-        <h2>Add Camera</h2>
-        <label>
-          Name:
-          <input type="text" name="name" value={inputs.name} onChange={handleChange} />
-          {errors.name && <span className="error">{errors.name}</span>}
-        </label>
-        <br />
-        <label>
-          RTSP Url:
-          <input type="text" name="url" value={inputs.url} onChange={handleChange} />
-          {errors.url && <span className="error">{errors.url}</span>}
-        </label>
-        <br />
-        <label>
-          Location:
-          <input type="text" name="location" value={inputs.location} onChange={handleChange} />
-        </label>
-        <br />
-        <label>
-          Force Transcode:
-          <input type="checkbox" name={checkBoxName} value={inputs.force_transcode} onChange={handleChange} />
-        </label>
-        <br />
-        <button type="submit" onClick={handleAdd}>Add</button>
-        {addError && <span className="error">{addError}</span>}
-        <button onClick={handleHideModal}>Cancel</button>
-      </ReactModal>
+      <button
+        onClick={handleShowModal}
+        className="bg-gold text-black py-2 px-4 rounded hover:bg-white hover:text-black transition duration-300"
+      >
+        Add Camera
+      </button>
+
+      {showModal && (
+        <div className="fixed inset-0 flex items-center justify-center z-50">
+          <div className="fixed inset-0 bg-black opacity-50"></div>
+          <div className="bg-black border border-gray-700 rounded-lg p-6 z-50 w-1/2">
+            <h2 className="text-gold mb-4">Add Camera</h2>
+            <label className="block mb-2">
+              Name:
+              <input
+                type="text"
+                name="name"
+                value={inputs.name}
+                onChange={handleChange}
+                className="block w-full p-2 mt-1 bg-black border border-gray-700 rounded text-white"
+              />
+              {errors.name && <span className="text-red-500">{errors.name}</span>}
+            </label>
+            <label className="block mb-2">
+              RTSP Url:
+              <input
+                type="text"
+                name="url"
+                value={inputs.url}
+                onChange={handleChange}
+                className="block w-full p-2 mt-1 bg-black border border-gray-700 rounded text-white"
+              />
+              {errors.url && <span className="text-red-500">{errors.url}</span>}
+            </label>
+            <label className="block mb-2">
+              Location:
+              <input
+                type="text"
+                name="location"
+                value={inputs.location}
+                onChange={handleChange}
+                className="block w-full p-2 mt-1 bg-black border border-gray-700 rounded text-white"
+              />
+            </label>
+            <label className="block mb-4">
+              Transcode:
+              <input
+                type="checkbox"
+                name="transcode"
+                checked={inputs.transcode}
+                onChange={handleChange}
+                className="ml-2"
+              />
+            </label>
+            <div className="flex justify-end">
+              <button
+                onClick={handleHideModal}
+                className="bg-gold text-black py-2 px-4 rounded hover:bg-white hover:text-black transition duration-300 mr-2"
+              >
+                Close
+              </button>
+              <button
+                onClick={handleHideModal}
+                className="bg-gold text-black py-2 px-4 rounded hover:bg-white hover:text-black transition duration-300"
+              >
+                Add
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

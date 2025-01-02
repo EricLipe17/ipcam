@@ -1,10 +1,9 @@
 const Grid = ({ children, columns }) => {
   return (
     <div
+      className={`grid gap-20`}
       style={{
-        display: 'grid',
-        gridTemplateColumns: `repeat(${columns}, 1fr)`,
-        gridGap: 10,
+        gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
       }}
     >
       {children}

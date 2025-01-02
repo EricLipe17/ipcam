@@ -65,8 +65,7 @@ const Cameras = () => {
   }, [camAdded]);
 
   return (
-    <>
-      <AddCameraModal setCamAdded={setCamAdded} />
+    <div className="bg-black-950 min-h-screen p-4">
       <DndContext
         sensors={sensors}
         collisionDetection={closestCenter}
@@ -76,7 +75,7 @@ const Cameras = () => {
         <SortableContext items={cameras} strategy={rectSortingStrategy}>
           <Grid columns={cols}>
             {cameras.map((camera) => (
-              <SortableItem key={camera.id} id={camera.id} handle={true} >
+              <SortableItem key={camera.id} id={camera.id} handle={true}>
                 <Camera id={camera.id} />
               </SortableItem>
             ))}
@@ -85,17 +84,12 @@ const Cameras = () => {
         <DragOverlay>
           {activeId ? (
             <div
-              style={{
-                width: "640px",
-                height: "360px",
-                backgroundColor: "gray",
-                opacity: 0.3
-              }}
+              className="w-640 h-360 bg-gold opacity-30 z-auto"
             ></div>
           ) : null}
         </DragOverlay>
       </DndContext>
-    </>
+    </div>
   )
 }
 
