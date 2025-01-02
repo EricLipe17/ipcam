@@ -82,12 +82,12 @@ const Cameras = () => {
         <DragOverlay>
           {activeId ? (
             <div
-              className="w-640 h-360 bg-gold opacity-30 z-auto"
+              className="w-full h-full bg-gold opacity-30 z-auto rounded"
             ></div>
           ) : null}
         </DragOverlay>
       </DndContext>
-    </div>
+    </div >
   )
 }
 

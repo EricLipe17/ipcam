@@ -10,19 +10,15 @@ const SortableItem = ({ id, children }) => {
     isDragging
   } = useSortable({ id: id });
 
-  const style = {
+  const dynamicStyle = {
     transform: CSS.Transform.toString(transform),
     transition,
-    width: "640px",
-    height: "360px",
-    backgroundColor: "black",
-    margin: "10px",
     zIndex: isDragging ? "100" : "auto",
     opacity: isDragging ? 0.3 : 1
   };
 
   return (
-    <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
+    <div ref={setNodeRef} style={dynamicStyle} className="min-h-[360px] min-w-[640px] h-fit w-fit border-2 border-gold bg-black m-2 rounded" {...attributes} {...listeners}>
       {children}
     </div >
   );

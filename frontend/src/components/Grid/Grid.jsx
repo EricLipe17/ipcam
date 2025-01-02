@@ -1,10 +1,7 @@
-const Grid = ({ children, columns }) => {
+const Grid = ({ children }) => {
   return (
     <div
-      className={`grid gap-5`}
-      style={{
-        gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
-      }}
+      className={`grid gap-5 h-fit w-fit auto-cols-max`}
     >
       {children}
     </div>

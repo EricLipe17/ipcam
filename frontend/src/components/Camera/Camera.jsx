@@ -1,6 +1,8 @@
 import ReactPlayer from 'react-player/lazy'
 import { useEffect, useRef, useState } from 'react';
 
+import LoadingSpinner from '../LoadingSpinner/LoadingSpinner';
+
 const Camera = ({ id }) => {
   const [playing, setPlaying] = useState(true);
   const [config, setConfig] = useState()
@@ -40,25 +42,33 @@ const Camera = ({ id }) => {
   }, [id, retries])
 
   if (isLoading) {
-    return <div>Loading Stream...</div>
+    return <LoadingSpinner />
   }
 
   return (
-    <div>
-      {errorMsg !== "" ? (<div style={{ color: "red", }}>{errorMsg}</div>) :
+    <div className="w-fit h-fit">
+      {errorMsg !== "" ? (
+        <div className="grid grid-cols-1 content-center text-center w-full h-full">
+          <div class="flex items-center p-4 mb-4 text-m text-red-800 rounded bg-red-50" role="alert">
+            <svg class="flex-shrink-0 inline w-4 h-4 me-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
+              <path d="M10 .5a9.5 9.5 0 1 0 9.5 9.5A9.51 9.51 0 0 0 10 .5ZM9.5 4a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3ZM12 15H8a1 1 0 0 1 0-2h1v-3H8a1 1 0 0 1 0-2h2a1 1 0 0 1 1 1v4h1a1 1 0 0 1 0 2Z" />
+            </svg>
+            <span class="sr-only">Info</span>
+            <div>
+              <span class="font-medium">Error!</span> {errorMsg}
+            </div>
+          </div>
+        </div>
+      ) :
         (
           <>
-            <div style={{
-              display: "flex",
-              justifyContent: "space-between",
-              background: "black",
-              border: "2px solid white",
-            }}>
+            <div className="flex space-x-5 bg-black border border-white">
               <span>ID: {id}</span>
               <span>Name: {config.name}</span>
               {config.location && <span>Location: {config.location}</span>}
             </div>
             <ReactPlayer
+              className="w-fit h-fit"
               ref={playerRef}
               url={url}
               playing={playing}
