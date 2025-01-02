@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-function AddCameraModal() {
-  const [showModal, setShowModal] = useState(false);
+function AddCameraModal({ showModal, handleModal }) {
   const [errors, setErrors] = useState({});
   const [addError, setAddError] = useState("");
   const [inputs, setInputs] = useState({
@@ -14,12 +13,8 @@ function AddCameraModal() {
   const navigate = useNavigate();
   const checkBoxName = "transcode"
 
-  const handleShowModal = () => {
-    setShowModal(true);
-  };
-
-  const handleHideModal = () => {
-    setShowModal(false);
+  const handleClose = () => {
+    handleModal(false)
   };
 
   const handleChange = (event) => {
@@ -75,7 +70,7 @@ function AddCameraModal() {
         return false
       }
 
-      setShowModal(false)
+      handleModal(false)
       // TODO: the navigate only re-renders the Cameras component if the URL changes. If we are already on the cameras page, we need to force a re-render.
       navigate('/cameras')
       return true
@@ -87,19 +82,11 @@ function AddCameraModal() {
 
   return (
     <div>
-      <button
-        onClick={handleShowModal}
-        className="bg-gold text-black py-2 px-4 rounded hover:bg-white hover:text-black transition duration-300"
-      >
-        Add Camera
-      </button>
-
       {showModal && (
         <div className="fixed inset-0 flex items-center justify-center z-50">
-          <div className="fixed inset-0 bg-black opacity-50"></div>
           <div className="bg-black border border-gray-700 rounded-lg p-6 z-50 w-1/2">
             <h2 className="text-gold mb-4">Add Camera</h2>
-            <label className="block mb-2">
+            <label className="block text-gold  mb-2">
               Name:
               <input
                 type="text"
@@ -110,7 +97,7 @@ function AddCameraModal() {
               />
               {errors.name && <span className="text-red-500">{errors.name}</span>}
             </label>
-            <label className="block mb-2">
+            <label className="block text-gold  mb-2">
               RTSP Url:
               <input
                 type="text"
@@ -121,7 +108,7 @@ function AddCameraModal() {
               />
               {errors.url && <span className="text-red-500">{errors.url}</span>}
             </label>
-            <label className="block mb-2">
+            <label className="block text-gold  mb-2">
               Location:
               <input
                 type="text"
@@ -131,7 +118,7 @@ function AddCameraModal() {
                 className="block w-full p-2 mt-1 bg-black border border-gray-700 rounded text-white"
               />
             </label>
-            <label className="block mb-4">
+            <label className="block text-gold  mb-4">
               Transcode:
               <input
                 type="checkbox"
@@ -143,16 +130,16 @@ function AddCameraModal() {
             </label>
             <div className="flex justify-end">
               <button
-                onClick={handleHideModal}
+                onClick={handleAdd}
                 className="bg-gold text-black py-2 px-4 rounded hover:bg-white hover:text-black transition duration-300 mr-2"
               >
-                Close
+                Add
               </button>
               <button
-                onClick={handleAdd}
+                onClick={handleClose}
                 className="bg-gold text-black py-2 px-4 rounded hover:bg-white hover:text-black transition duration-300"
               >
-                Add
+                Close
               </button>
             </div>
           </div>

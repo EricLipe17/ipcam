@@ -3,9 +3,15 @@ import { useState } from "react";
 import { FaCaretDown } from "react-icons/fa";
 
 import AddCameraModal from "../Cameras/AddCameraModal";
+import DropdownMenu from "../DropdownMenu/DropdownMenu";
 
 const Navbar = () => {
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [showModal, setShowModal] = useState(false);
+  const handleModal = (show) => {
+    setShowModal(show)
+    setDropdownOpen(false)
+  }
 
   return (
     <nav className="bg-black p-4">
@@ -33,15 +39,17 @@ const Navbar = () => {
             </button>
           </div>
 
-          {dropdownOpen && (
-            <ul className="absolute left-0 mt-2 w-48 bg-black border border-gray-700 rounded shadow-lg">
-              <li>
-                <AddCameraModal />
-              </li>
-            </ul>
+          {true && (
+            <DropdownMenu
+              items={[
+                { value: "Add Camera", onClick: () => handleModal(true) },
+              ]}
+              open={dropdownOpen}
+              setOpen={setDropdownOpen} />
           )}
         </li>
       </ul>
+      <AddCameraModal showModal={showModal} handleModal={handleModal} />
     </nav>
   );
 };

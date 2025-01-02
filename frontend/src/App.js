@@ -2,11 +2,11 @@ import Home from "./components/Home";
 import Cameras from "./components/Cameras/Cameras"
 import Navbar from "./components/Navbar/Navbar";
 
-import { Route, Routes, HashRouter } from "react-router-dom";
+import { Route, Routes, BrowserRouter } from "react-router-dom";
 
 const App = () => {
   return (
-    <HashRouter>
+    <BrowserRouter>
       <div className="App">
         <Navbar />
         <div className="content">
@@ -16,7 +16,7 @@ const App = () => {
           </Routes>
         </div>
       </div>
-    </HashRouter>
+    </BrowserRouter>
   );
 }
 
