@@ -45,15 +45,17 @@ services:
       - rtsp-server
     command: -re -stream_loop -1 -i https://eu-central-1.linodeobjects.com/savant-data/demo/Free_City_Street_Footage.mp4 -c copy -bsf:v h264_mp4toannexb -f rtsp rtsp://rtsp-server:8554/city-traffic
 
-  street-cam:
+  surfing:
     restart: unless-stopped
     image: linuxserver/ffmpeg:version-7.1-cli
     links:
       - "rtsp-server:rtsp-server"
     depends_on:
       - rtsp-server
+    volumes:
+      - /Users/ericlipe/projects/ipcam/backend/surfing.mp4:/surfing.mp4
     # h264_mp4toannexb is a bitstream filter that is used to convert the H.264 bitstream to the Annex B format and is required by the mpegts muxer to produce a MPEG-TS stream.
-    command: -re -stream_loop -1 -i https://download.samplelib.com/mp4/sample-20s.mp4 -c copy -bsf:v h264_mp4toannexb -codec:a aac -f rtsp rtsp://rtsp-server:8554/street-cam
+    command: -re -stream_loop -1 -i /surfing.mp4 -c:v copy -c:a copy -f rtsp rtsp://rtsp-server:8554/surfing
 
 volumes:
   postgres_data:
