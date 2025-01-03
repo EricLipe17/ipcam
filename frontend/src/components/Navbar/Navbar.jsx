@@ -14,7 +14,7 @@ const Navbar = () => {
   }
 
   return (
-    <nav className="bg-black p-4">
+    <nav className="sticky top-0 z-50 bg-black p-4">
       <ul className="flex space-x-4">
         <li>
           <NavLink
