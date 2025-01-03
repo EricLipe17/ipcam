@@ -1,6 +1,5 @@
 import ReactPlayer from 'react-player/lazy'
 import { useEffect, useRef, useState } from 'react';
-
 import LoadingSpinner from '../LoadingSpinner/LoadingSpinner';
 
 const Camera = ({ id }) => {
@@ -79,7 +78,6 @@ const Camera = ({ id }) => {
                 file: {
                   hlsOptions: {
                     liveSyncDurationCount: 1,
-                    debug: true,
                     maxBufferLength: 30,
                     maxMaxBufferLength: 30,
                     backBufferLength: 0,

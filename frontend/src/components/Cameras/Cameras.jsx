@@ -22,8 +22,6 @@ const Cameras = () => {
   const [cameras, setCameras] = useState([])
   const [width, setWidth] = useState(window.innerWidth);
 
-  const cols = Math.floor(width / 640)
-
   const fetchCameras = () => {
     fetch("http://localhost:8000/cameras/").then(response => response.json())
       .then(cameras => setCameras(cameras))
@@ -71,7 +69,7 @@ const Cameras = () => {
         onDragStart={handleDragStart}
       >
         <SortableContext items={cameras} strategy={rectSortingStrategy}>
-          <Grid columns={cols}>
+          <Grid>
             {cameras.map((camera) => (
               <SortableItem key={camera.id} id={camera.id} handle={true}>
                 <Camera id={camera.id} />
