@@ -286,7 +286,7 @@ class AVCamera(Process):
                     level=logging.WARNING,
                 )
             except av.FFmpegError as e:
-                self.close(self.db_session)
+                self.close()
                 self._send_message(
                     message=(
                         "Encountered Ffmpeg exception while remuxing the recording. "
@@ -296,7 +296,7 @@ class AVCamera(Process):
                     m_type=MessageType.Error,
                 )
             except Exception as e:
-                self.close(self.db_session)
+                self.close()
                 self._send_message(
                     message=f"Encountered generic exception while remuxing recording. Closing all resources and stopping. \n{e}",
                     level=logging.ERROR,

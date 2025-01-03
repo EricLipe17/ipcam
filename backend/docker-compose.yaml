@@ -38,7 +38,7 @@ services:
 
   city-traffic:
     restart: unless-stopped
-    image: linuxserver/ffmpeg:version-4.4-cli
+    image: linuxserver/ffmpeg:version-7.1-cli
     links:
       - "rtsp-server:rtsp-server"
     depends_on:
@@ -47,12 +47,12 @@ services:
 
   street-cam:
     restart: unless-stopped
-    image: linuxserver/ffmpeg:version-4.4-cli
+    image: linuxserver/ffmpeg:version-7.1-cli
     links:
       - "rtsp-server:rtsp-server"
     depends_on:
       - rtsp-server
-    command: -re -stream_loop -1 -i https://download.samplelib.com/mp4/sample-20s.mp4 -map 0:v -c:v copy -map 0:a -c:a copy -map 0:a -f rtsp rtsp://rtsp-server:8554/street-cam
+    command: -re -stream_loop -1 -i https://download.samplelib.com/mp4/sample-20s.mp4 -c:v copy -c:a copy -f rtsp rtsp://rtsp-server:8554/street-cam
 
 volumes:
   postgres_data:
