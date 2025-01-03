@@ -21,7 +21,7 @@ class CommonSettings(BaseSettings):
     allowed_origins: list[str] = ["*"]
     allowed_hosts: list[str] = ["*"]
     path_prefix: str = ""
-    storage_dir: str = "/Users/ericlipe/projects/ipcam/backend/app"  # "/backend/app"
+    storage_dir: str = "/backend/app"
     db_config: Dict[str, Any] = {
         "POSTGRES_DB": "ipcam_project",
         "POSTGRES_PASSWORD": "something_secure",
