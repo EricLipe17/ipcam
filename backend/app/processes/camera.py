@@ -305,6 +305,7 @@ class AVCamera(Process):
 
     def _transcode(self):
         # TODO: Actually calculate duration recorded
+        # TODO: If the audio stream isn't AAC encoded we have to transcode it, otherwise the HLS muxer will fail!
         time_to_record = self._seconds_until_midnight()
         duration_recorded = 0
         for camera_packet in self.camera.demux():

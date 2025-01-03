@@ -52,7 +52,8 @@ services:
       - "rtsp-server:rtsp-server"
     depends_on:
       - rtsp-server
-    command: -re -stream_loop -1 -i https://download.samplelib.com/mp4/sample-20s.mp4 -c copy -bsf:v h264_mp4toannexb -c:a copy -f rtsp rtsp://rtsp-server:8554/street-cam
+    # h264_mp4toannexb is a bitstream filter that is used to convert the H.264 bitstream to the Annex B format and is required by the mpegts muxer to produce a MPEG-TS stream.
+    command: -re -stream_loop -1 -i https://download.samplelib.com/mp4/sample-20s.mp4 -c copy -bsf:v h264_mp4toannexb -codec:a aac -f rtsp rtsp://rtsp-server:8554/street-cam
 
 volumes:
   postgres_data:
