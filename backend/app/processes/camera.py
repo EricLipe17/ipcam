@@ -204,12 +204,15 @@ class AVCamera(Process):
         in_best_audio = self.camera.streams.best("audio")
 
         if self.force_transcode:
-            out_best_video = self.output_container.add_stream(codec_name="h264")
+            out_best_video = self.output_container.add_stream(codec_name="hevc")
             out_best_video.height = in_best_video.height
             out_best_video.width = in_best_video.width
             out_best_video.sample_aspect_ratio = in_best_video.sample_aspect_ratio
             out_best_video.codec_context.framerate = (
                 in_best_video.codec_context.framerate
+            )
+            out_best_video.codec_context.gop_size = (
+                in_best_video.codec_context.framerate * 2
             )
             out_best_video.pix_fmt = in_best_video.pix_fmt
             out_best_video.time_base = in_best_video.time_base
