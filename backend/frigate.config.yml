@@ -1,0 +1,36 @@
+mqtt:
+  enabled: false
+
+record:
+  enabled: true
+  retain:
+    days: 3
+    mode: motion
+  events:
+    retain:
+      default: 30
+      mode: all
+
+snapshots:
+  enabled: true
+  retain:
+    default: 30
+
+cameras:
+  test_amcrest: # <------ Name the camera
+    enabled: true
+    ffmpeg:
+      inputs:
+        - path: rtsp://admin:de3580de@192.168.0.42 # <----- The stream you want to use for detection
+          roles:
+            - detect
+    detect:
+      enabled: false # <---- disable detection until you have a working camera feed
+      width: 1280
+      height: 720
+version: 0.14
+camera_groups:
+  G1:
+    order: 1
+    icon: LuCamera
+    cameras: test_amcrest

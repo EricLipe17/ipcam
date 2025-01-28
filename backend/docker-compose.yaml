@@ -55,7 +55,36 @@ services:
     volumes:
       - /Users/ericlipe/projects/ipcam/backend/surfing.mp4:/surfing.mp4
     # h264_mp4toannexb is a bitstream filter that is used to convert the H.264 bitstream to the Annex B format and is required by the mpegts muxer to produce a MPEG-TS stream.
-    command: -re -stream_loop -1 -i /surfing.mp4 -c:v copy -c:a copy -f rtsp rtsp://rtsp-server:8554/surfing
+    command: -re -fflags +genpts -stream_loop -1 -i /surfing.mp4 -c:v copy -c:a copy -f rtsp rtsp://rtsp-server:8554/surfing
+
+  frigate:
+    container_name: frigate
+    privileged: true # this may not be necessary for all setups
+    restart: unless-stopped
+    image: ghcr.io/blakeblackshear/frigate:stable
+    shm_size: "64mb" # update for your cameras based on calculation above
+    # devices:
+    #   - /dev/bus/usb:/dev/bus/usb # Passes the USB Coral, needs to be modified for other versions
+    #   - /dev/apex_0:/dev/apex_0 # Passes a PCIe Coral, follow driver instructions here https://coral.ai/docs/m2/get-started/#2a-on-linux
+    #   - /dev/video11:/dev/video11 # For Raspberry Pi 4B
+    #   - /dev/dri/renderD128:/dev/dri/renderD128 # For intel hwaccel, needs to be updated for your hardware
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - ./frigate.config.yml:/config/config.yml
+      - frigate_data:/media/frigate
+      - type: tmpfs # Optional: 1GB of memory, reduces SSD/SD Card wear
+        target: /tmp/cache
+        tmpfs:
+          size: 1000000000
+    ports:
+      - "8971:8971"
+      - "8080:5000" # Internal unauthenticated access. Expose carefully.
+      - "8554:8554" # RTSP feeds
+      - "8555:8555/tcp" # WebRTC over tcp
+      - "8555:8555/udp" # WebRTC over udp
+    environment:
+      FRIGATE_RTSP_PASSWORD: "password"
 
 volumes:
   postgres_data:
+  frigate_data:

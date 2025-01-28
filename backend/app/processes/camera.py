@@ -19,6 +19,9 @@ from sqlmodel import Session
 import time
 
 
+av.logging.set_level(av.logging.DEBUG)
+
+
 class AVCamera(Process):
     url: str
     id: int
@@ -267,7 +270,7 @@ class AVCamera(Process):
 
     def _remux(self):
         # TODO: Actually calculate duration recorded
-        time_to_record = self._seconds_until_midnight()
+        time_to_record = 1  # self._seconds_until_midnight()
         duration_recorded = 0
         for packet in self.camera.demux():
             try:
@@ -309,7 +312,7 @@ class AVCamera(Process):
     def _transcode(self):
         # TODO: Actually calculate duration recorded
         # TODO: If the audio stream isn't AAC encoded we have to transcode it, otherwise the HLS muxer will fail!
-        time_to_record = self._seconds_until_midnight()
+        time_to_record = 1  # self._seconds_until_midnight()
         duration_recorded = 0
         for camera_packet in self.camera.demux():
             try:
