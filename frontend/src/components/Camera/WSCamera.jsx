@@ -2,8 +2,8 @@ import React, { useEffect, useRef, useState } from "react"
 
 const WSCamera = ({ streamUrl }) => {
   const videoRef = useRef(null)
-  const [videoData, setVideoData] = useState(null)
-  // const [mediaSource, setMediaSource] = useState(null)
+  const mediaSourceRef = useRef(null)
+  const bufferRef = useRef(null)
 
   const CODECS = [
     "avc1.640029", // H.264 high 4.1 (Chromecast 1st and 2nd Gen)
@@ -16,42 +16,36 @@ const WSCamera = ({ streamUrl }) => {
 
   useEffect(() => {
     const video = videoRef.current
-    const mediaSource = new MediaSource()
-    let sourceBuffer
+    mediaSourceRef.current = new MediaSource()
     let mimeCodec = 'video/mp4; codecs="avc1.640033,mp4a.40.2"'
 
     const ws = new WebSocket('ws://localhost:8000/cameras/1/live')
 
-    video.src = URL.createObjectURL(mediaSource)
+    video.src = URL.createObjectURL(mediaSourceRef.current)
 
-    mediaSource.addEventListener('error', (event) => {
+    mediaSourceRef.current.addEventListener('error', (event) => {
       console.error('MediaSource error:', event)
     })
 
-    mediaSource.addEventListener('sourceopen', () => {
+    mediaSourceRef.current.addEventListener('sourceopen', () => {
       console.log('MediaSource opened')
       if (!MediaSource.isTypeSupported(mimeCodec)) {
         console.error('Unsupported MIME type or codec: ', mimeCodec)
         return
       }
-      sourceBuffer = mediaSource.addSourceBuffer(mimeCodec)
+      bufferRef.current = mediaSourceRef.current.addSourceBuffer(mimeCodec)
 
-      sourceBuffer.addEventListener('error', (event) => { console.error('SourceBuffer error:', event) })
+      bufferRef.current.addEventListener('error', (event) => { console.error('SourceBuffer error:', event) })
 
       ws.onmessage = (event) => {
         console.log('Received data', event.data)
         event.data.arrayBuffer().then((segment) => {
           console.log('Appending segment to buffer', segment)
-          if (sourceBuffer.updating) {
+          if (bufferRef.current.updating) {
             console.log('Buffer is updating, waiting for updateend event to append segment')
-            sourceBuffer.addEventListener('updateend', () => {
-              sourceBuffer.appendBuffer(segment)
-              // video.play()
-            }, { once: true })
           } else {
             console.log('Buffer is not updating, appending segment')
-            sourceBuffer.appendBuffer(segment)
-            // video.play()
+            bufferRef.current.appendBuffer(segment)
           }
         })
       }
