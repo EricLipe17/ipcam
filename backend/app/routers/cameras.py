@@ -177,6 +177,7 @@ async def websocket_endpoint(websocket: WebSocket, id: int):
                 logger.info("Sending segment.")
                 await websocket.send_bytes(data)
                 logger.info("Sent segment.")
+                time.sleep(2)
             index += 1
             logger.info("Awaiting command to send next segment.")
             cmd = await websocket.receive_text()

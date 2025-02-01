@@ -4,6 +4,8 @@ const WSCamera = ({ streamUrl }) => {
   const videoRef = useRef(null)
   const mediaSourceRef = useRef(null)
   const bufferRef = useRef(null)
+  const wsRef = useRef(null)
+  let index = 0
 
   const CODECS = [
     "avc1.640029", // H.264 high 4.1 (Chromecast 1st and 2nd Gen)
@@ -17,9 +19,16 @@ const WSCamera = ({ streamUrl }) => {
   useEffect(() => {
     const video = videoRef.current
     mediaSourceRef.current = new MediaSource()
-    let mimeCodec = 'video/mp4; codecs="avc1.640033,mp4a.40.2"'
+    let mimeCodec = 'video/mp4; codecs="avc1.640033,mp4a.40.5"'
 
-    const ws = new WebSocket('ws://localhost:8000/cameras/1/live')
+    wsRef.current = new WebSocket('ws://localhost:8000/cameras/1/live')
+    wsRef.current.onmessage = (event) => {
+      // For the moment, we're assuming that the server is sending us binary mp4 segments only
+      event.data.arrayBuffer().then((segment) => {
+        console.log('Appending segment')
+        bufferRef.current.appendBuffer(segment)
+      })
+    }
 
     video.src = URL.createObjectURL(mediaSourceRef.current)
 
@@ -34,24 +43,21 @@ const WSCamera = ({ streamUrl }) => {
         return
       }
       bufferRef.current = mediaSourceRef.current.addSourceBuffer(mimeCodec)
+      bufferRef.current.mode = 'sequence'
 
       bufferRef.current.addEventListener('error', (event) => { console.error('SourceBuffer error:', event) })
-
-      ws.onmessage = (event) => {
-        console.log('Received data', event.data)
-        event.data.arrayBuffer().then((segment) => {
-          console.log('Appending segment to buffer', segment)
-          if (bufferRef.current.updating) {
-            console.log('Buffer is updating, waiting for updateend event to append segment')
-          } else {
-            console.log('Buffer is not updating, appending segment')
-            bufferRef.current.appendBuffer(segment)
-          }
-        })
-      }
+      bufferRef.current.addEventListener('updateend', () => {
+        console.log('Index:', index)
+        if (index > 60) {
+          mediaSourceRef.current.endOfStream()
+          return
+        }
+        wsRef.current.send('next')
+        index += 1
+      })
     })
 
-    return () => ws.close()
+    return () => wsRef.current.close()
   })
 
 
