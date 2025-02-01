@@ -13,6 +13,8 @@ from fastapi import (
     Depends,
     HTTPException,
     Query,
+    WebSocket,
+    WebSocketDisconnect,
 )
 from fastapi.responses import FileResponse
 from sqlmodel import select
@@ -128,3 +130,57 @@ async def get_segment(id: int, date: str, filename: str):
         path=f"{settings.storage_dir}/cameras/{id}/segments/{date}/{filename}",
         filename=filename,
     )
+
+
+class ConnectionManager:
+    def __init__(self):
+        self.active_connections: list[WebSocket] = []
+
+    async def connect(self, websocket: WebSocket):
+        print("Trying to accept websocket connection.")
+        await websocket.accept()
+        self.active_connections.append(websocket)
+
+    def disconnect(self, websocket: WebSocket):
+        self.active_connections.remove(websocket)
+
+    async def send_personal_message(self, message: str, websocket: WebSocket):
+        await websocket.send_text(message)
+
+    async def broadcast(self, message: str):
+        for connection in self.active_connections:
+            await connection.send_text(message)
+
+
+manager = ConnectionManager()
+import time
+
+
+@router.websocket("/{id}/live")
+async def websocket_endpoint(websocket: WebSocket, id: int):
+    logger.info("Websocket endpoint hit.")
+    await manager.connect(websocket)
+    logger.info("Websocket connected.")
+    try:
+        index = 0
+        while True:
+            with open(
+                (
+                    f"/backend/out00{index}.mp4"
+                    if index < 10
+                    else f"/backend/out0{index}.mp4"
+                ),
+                "rb",
+            ) as f:
+                logger.info("Loading segment.")
+                data = f.read()
+                logger.info("Sending segment.")
+                await websocket.send_bytes(data)
+                logger.info("Sent segment.")
+            index += 1
+            logger.info("Awaiting command to send next segment.")
+            cmd = await websocket.receive_text()
+            print(f"\nReceived command: {cmd}\n")
+    except WebSocketDisconnect:
+        logger.exception("Websocket disconnected due to exception.")
+        manager.disconnect(websocket)
