@@ -6,6 +6,7 @@ services:
       - "8000:8000"
     volumes:
       - .:/backend
+      - /etc/localtime:/etc/localtime:ro
     image: backend-api
     command: >
       bash -c "alembic upgrade head && python ./app/main.py"
