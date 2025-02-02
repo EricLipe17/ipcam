@@ -30,9 +30,7 @@ class AVCamera(Process):
     force_transcode: bool
     output_container: OutputContainer
     output_streams: dict[int, Stream]
-    playlist_name: str
     output_kwargs: dict
-    hls_opts: dict
     db_session: Session
     proc_type: ProcessType
 
@@ -53,18 +51,7 @@ class AVCamera(Process):
         self.force_transcode = force_transcode
         self.output_streams = dict()
         self.output_container = None
-        self.playlist_name = "output.m3u8"
-        self.output_kwargs = {
-            "mode": "w",
-            "format": "hls",
-            "options": {
-                "hls_time": "2",
-                "hls_segment_type": "mpegts",
-                "hls_playlist_type": "event",
-                "hls_flags": "append_list",
-            },
-        }
-        self.hls_opts = self.output_kwargs.get("options")
+        self.output_kwargs = dict()
         self.db_session = None
         self.proc_type = ProcessType.AVCamera
 
@@ -73,14 +60,19 @@ class AVCamera(Process):
         """Get DB representation of av video stream."""
         if not av_video_stream:
             return None
+        sample_aspect_ratio = av_video_stream.sample_aspect_ratio
         py_video_stream = VideoStream(
             codec=av_video_stream.codec.name,
             time_base_num=av_video_stream.time_base.numerator,
             time_base_den=av_video_stream.time_base.denominator,
             height=av_video_stream.height,
             width=av_video_stream.width,
-            sample_aspect_ratio_num=av_video_stream.sample_aspect_ratio.numerator,
-            sample_aspect_ratio_den=av_video_stream.sample_aspect_ratio.denominator,
+            sample_aspect_ratio_num=(
+                sample_aspect_ratio.numerator if sample_aspect_ratio else 16
+            ),
+            sample_aspect_ratio_den=(
+                sample_aspect_ratio.denominator if sample_aspect_ratio else 9
+            ),
             bit_rate=av_video_stream.bit_rate,
             framerate=av_video_stream.codec_context.framerate.numerator
             // av_video_stream.codec_context.framerate.denominator,
@@ -110,7 +102,8 @@ class AVCamera(Process):
         """Try to open connection to camera and return audio/video metadata upon success."""
         av_camera = None
         try:
-            av_camera = av.open(url)
+            # TODO: handle rtsp over udp
+            av_camera = av.open(url, options={"rtsp_transport": "tcp"})
             av_video_stream = av_camera.streams.best("video")
             av_audio_stream = av_camera.streams.best("audio")
             py_video_stream = AVCamera._get_py_video_stream(av_video_stream)
@@ -147,14 +140,6 @@ class AVCamera(Process):
     def _get_path(self):
         """Get path to store segments for current playlist."""
         return f"{settings.storage_dir}/cameras/{self.id}/segments/{self._get_date()}"
-
-    def _get_segment_url(self):
-        """Get the segment url for the HLS playlist."""
-        return f"/cameras/{self.id}/segment?date={self._get_date()}&filename="
-
-    def _next_playlist(self):
-        """Get the next active HLS playlist."""
-        return f"cameras/{self.id}/segments/{self._get_date()}/output.m3u8"
 
     def _seconds_until_midnight(self):
         """Calculates the time until midnight in the specified timezone."""
@@ -207,7 +192,7 @@ class AVCamera(Process):
         in_best_audio = self.camera.streams.best("audio")
 
         if self.force_transcode:
-            out_best_video = self.output_container.add_stream(codec_name="hevc")
+            out_best_video = self.output_container.add_stream(codec_name="h264")
             out_best_video.height = in_best_video.height
             out_best_video.width = in_best_video.width
             out_best_video.sample_aspect_ratio = in_best_video.sample_aspect_ratio
@@ -240,6 +225,154 @@ class AVCamera(Process):
                     template=in_best_audio
                 )
                 self.output_streams[in_best_audio.index] = out_best_audio
+
+    def close(self):
+        """Close all av resources."""
+        db_cam = self.db_session.get(Camera, self.id)
+        db_cam.is_recording = False
+        self.db_session.commit()
+        self.camera.close()
+        self.output_container.close()
+
+    def _remux(self):
+        raise NotImplementedError("This method must be implemented by a subclass.")
+
+    def _transcode(self):
+        raise NotImplementedError("This method must be implemented by a subclass.")
+
+    def run(self):
+        raise NotImplementedError("This method must be implemented by a subclass.")
+
+
+class SegmentCamera(AVCamera):
+    def __init__(
+        self,
+        url: str,
+        id: int,
+        connection: Connection,
+        force_transcode: bool = False,
+        *args,
+        **kwargs,
+    ):
+        super().__init__(url, id, connection, force_transcode, *args, **kwargs)
+        self.output_kwargs = {
+            "mode": "w",
+            "format": "segment",
+            "container_options": {
+                "flags": "+cgop",
+                "g": "240",
+            },
+            "options": {
+                "segment_time": "10",
+                "segment_format_options": "movflags=frag_keyframe+empty_moov+default_base_moof",
+            },
+        }
+
+    def _remux(self):
+        for packet in self.camera.demux():
+            try:
+                stream = self.output_streams.get(packet.stream_index, None)
+                if stream:
+                    packet.stream = stream
+                    self.output_container.mux(packet)
+            except SQLAlchemyError:
+                self._send_message(
+                    f"Encountered a sqlalchemy error while remuxing, continuing to record.",
+                    level=logging.WARNING,
+                )
+            except av.FFmpegError as e:
+                self.close()
+                self._send_message(
+                    message=(
+                        "Encountered Ffmpeg exception while remuxing the recording. "
+                        f"Closing all resources and stopping. \n{e}"
+                    ),
+                    level=logging.ERROR,
+                    m_type=MessageType.Error,
+                )
+            except Exception as e:
+                self.close()
+                self._send_message(
+                    message=f"Encountered generic exception while remuxing recording. Closing all resources and stopping. \n{e}",
+                    level=logging.ERROR,
+                    m_type=MessageType.Error,
+                )
+
+    def _transcode(self):
+        pass
+
+    def run(self):
+        """Start recording the camera's data."""
+        # Create av camera
+        self._send_message(f"Opening.")
+        # TODO: handle rtsp over udp
+        self.camera = av.open(self.url, options={"rtsp_transport": "tcp"})
+        self._send_message(f"Successfully opened.")
+
+        # Get the camera from the DB to update it as the recording progresses.
+        self._send_message(f"Getting DB session.")
+        self.db_session = next(get_session())
+        py_cam = self.db_session.get(Camera, self.id)
+        self._send_message(f"DB session acquired.")
+
+        # Set the physical storage location of the segments.
+        path = self._get_path()
+        os.makedirs(path, exist_ok=True)
+
+        # Set the DB camera's recording flag
+        py_cam.is_recording = True
+        self.db_session.commit()
+
+        # Open the output container and begin recording data from the camera.
+        self._send_message(f"Opening new output container.")
+        self.output_container = av.open(**self.output_kwargs, file=f"{path}/%03d.mp4")
+        self._set_best_streams()
+
+        self._send_message(f"Recording.")
+        if self.force_transcode:
+            self._send_message(
+                "Transcoding camera data to x264 and AAC for video and audio respectively."
+            )
+            self._transcode()
+        else:
+            self._send_message("Remuxing camera data for camera.")
+            self._remux()
+
+
+class HLSCamera(AVCamera):
+    playlist_name: str
+    hls_opts: dict
+
+    def __init__(
+        self,
+        url: str,
+        id: int,
+        connection: Connection,
+        force_transcode: bool = False,
+        *args,
+        **kwargs,
+    ):
+        super().__init__(url, id, connection, force_transcode, *args, **kwargs)
+        self.playlist_name = "output.m3u8"
+        self.output_kwargs = {
+            "mode": "w",
+            "format": "hls",
+            "options": {
+                "hls_time": "2",
+                "hls_segment_type": "mpegts",
+                "hls_playlist_type": "event",
+                "hls_flags": "append_list",
+            },
+        }
+        self.hls_opts = self.output_kwargs.get("options")
+
+    def _get_segment_url(self):
+        """Get the segment url for the HLS playlist."""
+        return f"/cameras/{self.id}/segment?date={self._get_date()}&filename="
+
+    def _next_playlist(self):
+        """Get the next active HLS playlist."""
+        return f"cameras/{self.id}/segments/{self._get_date()}/output.m3u8"
 
     def _roll_playlist(self):
         # This playlist has reached it's max size, roll it over and start the next playlist.
