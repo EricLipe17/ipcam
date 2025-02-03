@@ -24,7 +24,7 @@ const WSCamera = memo(({ config }) => {
     mediaSourceRef.current = new MediaSource()
     let mimeCodec = 'video/mp4; codecs="avc1.640033,mp4a.40.5"'
 
-    wsRef.current = new WebSocket('ws://localhost:8000/cameras/1/live')
+    wsRef.current = new WebSocket(`ws://localhost:8000/cameras/${config.id}/live`)
     wsRef.current.onmessage = (event) => {
       // For the moment, we're assuming that the server is sending us binary mp4 segments only
       event.data.arrayBuffer().then((segment) => {
