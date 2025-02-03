@@ -171,7 +171,7 @@ async def websocket_endpoint(websocket: WebSocket, id: int):
             ) as f:
                 data = f.read()
                 await websocket.send_bytes(data)
-                time.sleep(4)
+                time.sleep(8)
             index += 1
             cmd = await websocket.receive_text()
     except WebSocketDisconnect:
