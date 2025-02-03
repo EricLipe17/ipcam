@@ -5,6 +5,7 @@ cameras
 test.py
 *.mp4
 *.log
+*.txt
 
 .DS_Store
 .env
