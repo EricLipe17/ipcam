@@ -18,7 +18,7 @@ const SortableItem = ({ id, children }) => {
   };
 
   return (
-    <div ref={setNodeRef} style={dynamicStyle} className="flex items-center justify-center min-h-[360px] min-w-[640px] h-fit w-fit border-2 border-gold bg-black m-2 rounded" {...attributes} {...listeners}>
+    <div ref={setNodeRef} style={dynamicStyle} className="flex items-center justify-center h-fit w-fit border-2 border-gold bg-black m-2 rounded" {...attributes} {...listeners}>
       {children}
     </div >
   );

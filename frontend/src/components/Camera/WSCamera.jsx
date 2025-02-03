@@ -1,7 +1,8 @@
-import React, { useEffect, useRef, useState } from "react"
+import React, { memo, useEffect, useRef, useState } from "react"
 import Error from "../Errors/Error"
 
-const WSCamera = ({ config }) => {
+const WSCamera = memo(({ config }) => {
+  console.log('rendering WSCamera')
   const videoRef = useRef(null)
   const mediaSourceRef = useRef(null)
   const bufferRef = useRef(null)
@@ -78,6 +79,6 @@ const WSCamera = ({ config }) => {
       }
     </div >
   )
-}
+})
 
 export default WSCamera
