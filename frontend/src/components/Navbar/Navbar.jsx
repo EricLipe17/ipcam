@@ -1,17 +1,13 @@
 import { Link, NavLink } from "react-router-dom";
 import { useState } from "react";
-import { FaCaretDown } from "react-icons/fa";
 
 import AddCameraModal from "../Cameras/AddCameraModal";
 import DropdownMenu from "../DropdownMenu/DropdownMenu";
+import Caret from "../DropdownMenu/Caret";
 
 const Navbar = () => {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [showModal, setShowModal] = useState(false);
-  const handleModal = (show) => {
-    setShowModal(show)
-    setDropdownOpen(false)
-  }
 
   return (
     <nav className="sticky top-0 z-50 bg-black p-4">
@@ -31,22 +27,17 @@ const Navbar = () => {
         <li className="relative">
           <div className="grid grid-cols-2">
             <Link to="/cameras" onClick={() => setDropdownOpen(false)} className="text-white hover:text-gold">Cameras</Link>
-            <button
-              onClick={() => setDropdownOpen(!dropdownOpen)}
-              className="text-white hover:text-gold"
-            >
-              <FaCaretDown className="ml-1" />
-            </button>
+            <Caret setDropdownOpen={setDropdownOpen} />
           </div>
           <DropdownMenu
             items={[
-              { value: "Add Camera", onClick: () => handleModal(true) },
+              { value: "Add Camera", onClick: () => setShowModal(true) },
             ]}
             open={dropdownOpen}
             setOpen={setDropdownOpen} />
         </li>
       </ul>
-      <AddCameraModal showModal={showModal} handleModal={handleModal} />
+      <AddCameraModal showModal={showModal} setShowModal={setShowModal} />
     </nav>
   );
 };

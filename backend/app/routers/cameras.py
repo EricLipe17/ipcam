@@ -163,15 +163,15 @@ async def websocket_endpoint(websocket: WebSocket, id: int):
         while True:
             with open(
                 (
-                    f"/backend/pyav_out00{index}.mp4"
+                    f"/backend/app/cameras/2/segments/2025-02-02/00{index}.mp4"
                     if index < 10
-                    else f"/backend/out0{index}.mp4"
+                    else f"/backend/app/cameras/2/segments/2025-02-02/0{index}.mp4"
                 ),
                 "rb",
             ) as f:
                 data = f.read()
                 await websocket.send_bytes(data)
-                time.sleep(2)
+                time.sleep(4)
             index += 1
             cmd = await websocket.receive_text()
     except WebSocketDisconnect:
