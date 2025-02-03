@@ -163,9 +163,9 @@ async def websocket_endpoint(websocket: WebSocket, id: int):
         while True:
             with open(
                 (
-                    f"/backend/app/cameras/2/segments/2025-02-02/00{index}.mp4"
+                    f"/backend/app/cameras/1/segments/2025-02-03/00{index}.mp4"
                     if index < 10
-                    else f"/backend/app/cameras/2/segments/2025-02-02/0{index}.mp4"
+                    else f"/backend/app/cameras/1/segments/2025-02-03/0{index}.mp4"
                 ),
                 "rb",
             ) as f:
@@ -175,5 +175,5 @@ async def websocket_endpoint(websocket: WebSocket, id: int):
             index += 1
             cmd = await websocket.receive_text()
     except WebSocketDisconnect:
-        logger.exception("Websocket disconnected due to exception.")
+        logger.info("Client closed livestream.")
         manager.disconnect(websocket)

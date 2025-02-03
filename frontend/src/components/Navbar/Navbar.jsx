@@ -25,9 +25,6 @@ const Navbar = () => {
           </NavLink>
         </li>
         <li className="relative">
-          <Link to="/ws" onClick={() => setDropdownOpen(false)} className="text-white hover:text-gold">Websocket</Link>
-        </li>
-        <li className="relative">
           <div className="grid grid-cols-2">
             <Link to="/cameras" onClick={() => setDropdownOpen(false)} className="text-white hover:text-gold">Cameras</Link>
             <Caret dropdownOpen={dropdownOpen} setDropdownOpen={setDropdownOpen} />

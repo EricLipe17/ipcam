@@ -14,6 +14,7 @@ import {
 } from "@dnd-kit/sortable";
 
 import Camera from '../Camera/Camera';
+import WSCamera from '../Camera/WSCamera';
 import Grid from '../Grid/Grid';
 import SortableItem from '../SortableItem/SortableItem';
 
@@ -72,7 +73,7 @@ const Cameras = () => {
           <Grid>
             {cameras.map((camera) => (
               <SortableItem key={camera.id} id={camera.id} handle={true}>
-                <Camera id={camera.id} />
+                <WSCamera config={camera} />
               </SortableItem>
             ))}
           </Grid>
