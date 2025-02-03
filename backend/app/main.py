@@ -33,8 +33,8 @@ class EndpointFilter(logging.Filter):
 
 # Filter out uvicorn logs coming from the segments and playlist endpoints
 uvicorn_logger = logging.getLogger("uvicorn.access")
-uvicorn_logger.addFilter(EndpointFilter(path="/segment"))
-uvicorn_logger.addFilter(EndpointFilter(path="/output.m3u8"))
+# uvicorn_logger.addFilter(EndpointFilter(path="/segment"))
+# uvicorn_logger.addFilter(EndpointFilter(path="/output.m3u8"))
 
 logger = logging.getLogger(__name__)
 
