@@ -27,7 +27,7 @@ const Navbar = () => {
         <li className="relative">
           <div className="grid grid-cols-2">
             <Link to="/cameras" onClick={() => setDropdownOpen(false)} className="text-white hover:text-gold">Cameras</Link>
-            <Caret setDropdownOpen={setDropdownOpen} />
+            <Caret dropdownOpen={dropdownOpen} setDropdownOpen={setDropdownOpen} />
           </div>
           <DropdownMenu
             items={[

@@ -1,32 +1,26 @@
-import { FaCaretDown } from "react-icons/fa";
-import React, { useEffect, useRef } from "react";
+import { FaCaretDown, FaCaretUp } from "react-icons/fa";
 
-
-const Caret = ({ setDropdownOpen }) => {
-  const ref = useRef(null);
-
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (ref.current && !ref.current.contains(event.target)) {
-        setDropdownOpen(false)
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [ref, setDropdownOpen]);
-
+const Caret = ({ dropdownOpen, setDropdownOpen }) => {
   return (
-    <button
-      ref={ref}
-      onClick={() => setDropdownOpen((prev) => !prev)}
-      className="text-white hover:text-gold"
-    >
-      <FaCaretDown className="ml-1" />
-    </button>
+    <>
+      {
+        !dropdownOpen ? (
+          <button
+            onClick={() => setDropdownOpen(true)}
+            className="text-white hover:text-gold"
+          >
+            <FaCaretDown className="ml-1" />
+          </button>
+        ) : (
+          <button
+            onClick={() => setDropdownOpen(false)}
+            className="text-white hover:text-gold"
+          >
+            <FaCaretUp className="ml-1" />
+          </button>
+        )
+      }
+    </>
   )
 };
 

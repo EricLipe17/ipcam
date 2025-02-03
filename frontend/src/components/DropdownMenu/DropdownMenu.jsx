@@ -1,9 +1,26 @@
+import React, { useEffect, useRef } from "react";
+
 const DropdownMenu = ({ items, open, setOpen }) => {
+  const ref = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (ref.current && !ref.current.contains(event.target)) {
+        setOpen(false)
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [ref, setOpen]);
 
   return (
     <>
       {open && (
-        <div className="z-10 rounded-lg border border-gold bg-black">
+        <div ref={ref} className="z-10 rounded-lg border border-gold bg-black">
           <ul className="py-2 text-sm">
             {items.map((item, index) => (
               <li key={index} onClick={() => {
