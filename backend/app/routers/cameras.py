@@ -3,7 +3,7 @@ from app.db.models import AudioStream, VideoStream, Camera, CameraCreate
 from app.dependencies import get_current_active_user
 from app.processes.camera import AVCamera
 from app import process_manager
-from app.settings.local import settings
+from app.settings import settings
 
 import logging
 import os
@@ -157,6 +157,7 @@ import time
 
 @router.websocket("/{id}/live")
 async def websocket_endpoint(websocket: WebSocket, id: int):
+    # TODO: update endpoint to get the latest segment from the segment directory
     await manager.connect(websocket)
     try:
         index = 0

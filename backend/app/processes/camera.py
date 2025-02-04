@@ -2,7 +2,7 @@ from app.db import get_session
 from app.db.models import AudioStream, VideoStream, Camera
 from app.processes.messages import Message
 from app.processes.enums import MessageType, ProcessType
-from app.settings.local import settings
+from app.settings import settings
 
 import av
 from av.container.input import InputContainer

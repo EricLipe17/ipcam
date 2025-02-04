@@ -1,5 +1,5 @@
-from app.settings.local import fake_users_db
-from app.settings.local import settings
+from app.settings import fake_users_db
+from app.settings import settings
 from app.models import Token
 from app.dependencies import authenticate_user, create_access_token
 

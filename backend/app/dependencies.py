@@ -1,6 +1,6 @@
 from app.models import UserInDB, TokenData, User
-from app.settings.local import fake_users_db
-from app.settings.local import settings
+from app.settings import fake_users_db
+from app.settings import settings
 
 from typing import Annotated
 import jwt

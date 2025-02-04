@@ -1,5 +1,5 @@
 from app.db.models import *
-from app.settings.local import settings
+from app.settings import settings
 
 from fastapi import Depends
 from sqlalchemy import create_engine

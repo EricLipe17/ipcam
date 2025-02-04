@@ -1,6 +1,6 @@
 from app import process_manager
 from app.routers import auth, cameras, users
-from app.settings.local import settings
+from app.settings import settings
 
 import asyncio
 from contextlib import asynccontextmanager
