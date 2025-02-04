@@ -153,6 +153,14 @@ class ConnectionManager:
 
 manager = ConnectionManager()
 import time
+from datetime import datetime
+
+
+def get_latest_segment(id: int):
+    path = f"{settings.storage_dir}/cameras/{id}/segments/{datetime.now().strftime("%Y-%m-%d")}"
+    segments = os.listdir(path)
+    segments.sort()
+    return f"{path}/{segments[-1]}"
 
 
 @router.websocket("/{id}/live")
@@ -161,13 +169,15 @@ async def websocket_endpoint(websocket: WebSocket, id: int):
     await manager.connect(websocket)
     try:
         index = 0
+
+        prev_segment = get_latest_segment(id)
         while True:
+            latest_segment = get_latest_segment(id)
+            if prev_segment != latest_segment:
+                prev_segment = latest_segment
+                index = 0
             with open(
-                (
-                    f"/backend/app/cameras/{id}/segments/2025-02-03/00{index}.mp4"
-                    if index < 10
-                    else f"/backend/app/cameras/{id}/segments/2025-02-03/0{index}.mp4"
-                ),
+                latest_segment,
                 "rb",
             ) as f:
                 data = f.read()

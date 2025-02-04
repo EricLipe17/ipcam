@@ -325,7 +325,7 @@ class SegmentCamera(AVCamera):
 
         # Open the output container and begin recording data from the camera.
         self._send_message(f"Opening new output container.")
-        self.output_container = av.open(**self.output_kwargs, file=f"{path}/%03d.mp4")
+        self.output_container = av.open(**self.output_kwargs, file=f"{path}/%05d.mp4")
         self._set_best_streams()
 
         self._send_message(f"Recording.")
