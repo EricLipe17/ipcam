@@ -13,7 +13,7 @@ import uvicorn
 
 
 logging.basicConfig(
-    level=logging.WARNING,
+    level=logging.INFO,
 )
 
 

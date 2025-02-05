@@ -20,6 +20,7 @@ const WSCamera = memo(({ config }) => {
   const [errorMsg, setErrorMsg] = useState("")
 
   useEffect(() => {
+    console.log('Creating MediaSource')
     const video = videoRef.current
     mediaSourceRef.current = new MediaSource()
     let mimeCodec = 'video/mp4; codecs="avc1.640033,mp4a.40.5"'
@@ -36,7 +37,7 @@ const WSCamera = memo(({ config }) => {
     video.src = URL.createObjectURL(mediaSourceRef.current)
 
     mediaSourceRef.current.addEventListener('error', (event) => {
-      setErrorMsg('MediaSource error')
+      setErrorMsg('MediaSource error:', event)
       console.error('MediaSource error:', event)
     })
 
@@ -47,18 +48,22 @@ const WSCamera = memo(({ config }) => {
         return
       }
       bufferRef.current = mediaSourceRef.current.addSourceBuffer(mimeCodec)
+      console.log('SourceBuffer mode:', bufferRef.current.mode)
       bufferRef.current.mode = 'sequence'
 
       bufferRef.current.addEventListener('error', (event) => { setErrorMsg('SourceBuffer error:', event) })
       bufferRef.current.addEventListener('updateend', () => {
+        console.log('SourceBuffer updateend')
         wsRef.current.send('next')
       })
     })
 
     return () => {
       wsRef.current.close()
+      mediaSourceRef.current.endOfStream()
+      console.log('MediaSource closed')
     }
-  })
+  }, [])
 
 
   return (

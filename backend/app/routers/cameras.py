@@ -157,10 +157,12 @@ from datetime import datetime
 
 
 def get_latest_segment(id: int):
+    # If we return the absolute newest segment, we will run into timing issues with the frontend causing buffer loading
+    # choppy streaming.
     path = f"{settings.storage_dir}/cameras/{id}/segments/{datetime.now().strftime("%Y-%m-%d")}"
     segments = os.listdir(path)
     segments.sort()
-    return f"{path}/{segments[-1]}"
+    return f"{path}/{segments[-2]}"
 
 
 @router.websocket("/{id}/live")
@@ -173,6 +175,7 @@ async def websocket_endpoint(websocket: WebSocket, id: int):
         prev_segment = get_latest_segment(id)
         while True:
             latest_segment = get_latest_segment(id)
+            logger.info(f"\nlatest_segment: {latest_segment}")
             if prev_segment != latest_segment:
                 prev_segment = latest_segment
                 index = 0
@@ -182,9 +185,10 @@ async def websocket_endpoint(websocket: WebSocket, id: int):
             ) as f:
                 data = f.read()
                 await websocket.send_bytes(data)
-                time.sleep(8)
+                time.sleep(10)
             index += 1
             cmd = await websocket.receive_text()
+            logger.info(f"cmd: {cmd}\n")
     except WebSocketDisconnect:
         logger.info("Client closed livestream.")
         manager.disconnect(websocket)

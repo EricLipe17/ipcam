@@ -19,7 +19,7 @@ from sqlmodel import Session
 import time
 
 
-av.logging.set_level(av.logging.DEBUG)
+av.logging.set_level(av.logging.ERROR)
 
 
 class AVCamera(Process):
@@ -258,13 +258,11 @@ class SegmentCamera(AVCamera):
         self.output_kwargs = {
             "mode": "w",
             "format": "segment",
-            "container_options": {
-                "flags": "+cgop",
-                "g": "240",
-            },
             "options": {
                 "segment_time": "10",
                 "segment_format_options": "movflags=frag_keyframe+empty_moov+default_base_moof",
+                "flags": "+cgop",
+                "g": "200",
             },
         }
 
