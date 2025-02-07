@@ -15,6 +15,7 @@ import {
 
 import Camera from '../Camera/Camera';
 import WSCamera from '../Camera/WSCamera';
+import TestWS from '../Camera/TestWS';
 import Grid from '../Grid/Grid';
 import SortableItem from '../SortableItem/SortableItem';
 

@@ -7,6 +7,7 @@ const WSCamera = memo(({ config }) => {
   const mediaSourceRef = useRef(null)
   const bufferRef = useRef(null)
   const wsRef = useRef(null)
+  const [wsOpen, setWsOpen] = useState(false)
 
   // const CODECS = [
   //   "avc1.640029", // H.264 high 4.1 (Chromecast 1st and 2nd Gen)
@@ -19,48 +20,69 @@ const WSCamera = memo(({ config }) => {
 
   const [errorMsg, setErrorMsg] = useState("")
 
+  // TODO: something here is not letting concurrent ws connections occur.
+
   useEffect(() => {
-    console.log('Creating MediaSource')
+    console.log('Creating MediaSource for', config.id)
     const video = videoRef.current
     mediaSourceRef.current = new MediaSource()
+    const mediaSrc = mediaSourceRef.current
     let mimeCodec = 'video/mp4; codecs="avc1.640033,mp4a.40.5"'
 
     wsRef.current = new WebSocket(`ws://localhost:8000/cameras/${config.id}/live`)
-    wsRef.current.onmessage = (event) => {
+    const websocket = wsRef.current
+
+    websocket.onmessage = (event) => {
       // For the moment, we're assuming that the server is sending us binary mp4 segments only
       event.data.arrayBuffer().then((segment) => {
-        console.log('Appending segment')
+        // console.log('Appending segment')
         bufferRef.current.appendBuffer(segment)
       })
     }
 
-    video.src = URL.createObjectURL(mediaSourceRef.current)
+    websocket.onopen = (event) => {
+      console.log('Websocket connection opened for cam:', config.id)
+    }
 
-    mediaSourceRef.current.addEventListener('error', (event) => {
+    websocket.onerror = (event) => {
+      console.log('Websocket error for cam', config.id)
+      console.log('error:', event)
+    }
+
+    websocket.onclose = (event) => {
+      console.log('Websocket closing for cam', config.id)
+    }
+
+    video.src = URL.createObjectURL(mediaSrc)
+
+    mediaSrc.addEventListener('error', (event) => {
       setErrorMsg('MediaSource error:', event)
       console.error('MediaSource error:', event)
     })
 
-    mediaSourceRef.current.addEventListener('sourceopen', () => {
-      console.log('MediaSource opened')
+    mediaSrc.addEventListener('sourceopen', () => {
+      // console.log('MediaSource opened')
       if (!MediaSource.isTypeSupported(mimeCodec)) {
         setErrorMsg('Unsupported MIME type or codec: ', mimeCodec)
         return
       }
-      bufferRef.current = mediaSourceRef.current.addSourceBuffer(mimeCodec)
-      console.log('SourceBuffer mode:', bufferRef.current.mode)
+      bufferRef.current = mediaSrc.addSourceBuffer(mimeCodec)
+      // console.log('SourceBuffer mode:', bufferRef.current.mode)
       bufferRef.current.mode = 'sequence'
 
       bufferRef.current.addEventListener('error', (event) => { setErrorMsg('SourceBuffer error:', event) })
       bufferRef.current.addEventListener('updateend', () => {
-        console.log('SourceBuffer updateend')
-        wsRef.current.send('next')
+        console.log('In updateend for cam', config.id, 'websocket readystate', websocket.readyState)
+        if (websocket && websocket.readyState === 1) {
+          console.log('Getting next segment for cam', config.id)
+          websocket.send('next')
+        }
       })
     })
 
     return () => {
-      wsRef.current.close()
-      mediaSourceRef.current.endOfStream()
+      websocket.close()
+      mediaSrc.endOfStream()
       console.log('MediaSource closed')
     }
   }, [])

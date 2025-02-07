@@ -165,6 +165,7 @@ def get_latest_segment(id: int):
     return f"{path}/{segments[-2]}"
 
 
+# TODO: this doesnt handle concurrent connections.
 @router.websocket("/{id}/live")
 async def websocket_endpoint(websocket: WebSocket, id: int):
     # TODO: update endpoint to get the latest segment from the segment directory
@@ -175,7 +176,6 @@ async def websocket_endpoint(websocket: WebSocket, id: int):
         prev_segment = get_latest_segment(id)
         while True:
             latest_segment = get_latest_segment(id)
-            logger.info(f"\nlatest_segment: {latest_segment}")
             if prev_segment != latest_segment:
                 prev_segment = latest_segment
                 index = 0
@@ -188,7 +188,6 @@ async def websocket_endpoint(websocket: WebSocket, id: int):
                 time.sleep(10)
             index += 1
             cmd = await websocket.receive_text()
-            logger.info(f"cmd: {cmd}\n")
     except WebSocketDisconnect:
         logger.info("Client closed livestream.")
         manager.disconnect(websocket)
