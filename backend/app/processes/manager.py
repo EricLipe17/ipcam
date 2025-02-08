@@ -40,10 +40,11 @@ class ProcessManager:
         self._start_camera_processes(db_session)
 
     def _start_camera_processes(self, db_session):
+        # TODO: Update this to start where the last segment left off based on it's file name... Or just use strf time
         stmt = select(Camera).where(Camera.is_recording == True)
         cameras = db_session.exec(stmt)
         for camera in cameras:
-            self.add_camera(id=camera.id, name=camera.name, url=camera.url)
+            self.add_camera(camera)
 
     def add_process(self, id: int, connection: Connection, process: mp.Process):
         """

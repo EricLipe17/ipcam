@@ -171,23 +171,20 @@ async def websocket_endpoint(websocket: WebSocket, id: int):
     # TODO: update endpoint to get the latest segment from the segment directory
     await manager.connect(websocket)
     try:
-        index = 0
-
-        prev_segment = get_latest_segment(id)
+        prev_segment = None
         while True:
+            cmd = await websocket.receive_text()
             latest_segment = get_latest_segment(id)
-            if prev_segment != latest_segment:
-                prev_segment = latest_segment
-                index = 0
+            if prev_segment == latest_segment:
+                continue
+            logger.info(f"\n\nGetting segment {latest_segment} for camera id: {id}\n")
+            prev_segment = latest_segment
             with open(
                 latest_segment,
                 "rb",
             ) as f:
                 data = f.read()
                 await websocket.send_bytes(data)
-                time.sleep(10)
-            index += 1
-            cmd = await websocket.receive_text()
     except WebSocketDisconnect:
         logger.info("Client closed livestream.")
         manager.disconnect(websocket)

@@ -4,10 +4,9 @@ import Error from "../Errors/Error"
 const WSCamera = memo(({ config }) => {
   console.log('rendering WSCamera')
   const videoRef = useRef(null)
-  const mediaSourceRef = useRef(null)
+  const mediaSrcRef = useRef(new MediaSource())
   const bufferRef = useRef(null)
-  const wsRef = useRef(null)
-  const [wsOpen, setWsOpen] = useState(false)
+  const wsRef = useRef(new WebSocket(`ws://localhost:8000/cameras/${config.id}/live`))
 
   // const CODECS = [
   //   "avc1.640029", // H.264 high 4.1 (Chromecast 1st and 2nd Gen)
@@ -25,23 +24,22 @@ const WSCamera = memo(({ config }) => {
   useEffect(() => {
     console.log('Creating MediaSource for', config.id)
     const video = videoRef.current
-    mediaSourceRef.current = new MediaSource()
-    const mediaSrc = mediaSourceRef.current
+    const mediaSrc = mediaSrcRef.current
+    const websocket = wsRef.current
     let mimeCodec = 'video/mp4; codecs="avc1.640033,mp4a.40.5"'
 
-    wsRef.current = new WebSocket(`ws://localhost:8000/cameras/${config.id}/live`)
-    const websocket = wsRef.current
-
     websocket.onmessage = (event) => {
+      console.log('received message for', config.id)
       // For the moment, we're assuming that the server is sending us binary mp4 segments only
       event.data.arrayBuffer().then((segment) => {
-        // console.log('Appending segment')
+        console.log('converted to arraybuffer for', config.id)
         bufferRef.current.appendBuffer(segment)
       })
     }
 
     websocket.onopen = (event) => {
       console.log('Websocket connection opened for cam:', config.id)
+      websocket.send('next')
     }
 
     websocket.onerror = (event) => {
@@ -54,6 +52,10 @@ const WSCamera = memo(({ config }) => {
     }
 
     video.src = URL.createObjectURL(mediaSrc)
+    video.ontimeupdate = (event) => {
+      console.log('Current time', video.currentTime)
+      websocket.send('next')
+    }
 
     mediaSrc.addEventListener('error', (event) => {
       setErrorMsg('MediaSource error:', event)
@@ -67,16 +69,12 @@ const WSCamera = memo(({ config }) => {
         return
       }
       bufferRef.current = mediaSrc.addSourceBuffer(mimeCodec)
-      // console.log('SourceBuffer mode:', bufferRef.current.mode)
       bufferRef.current.mode = 'sequence'
 
       bufferRef.current.addEventListener('error', (event) => { setErrorMsg('SourceBuffer error:', event) })
       bufferRef.current.addEventListener('updateend', () => {
-        console.log('In updateend for cam', config.id, 'websocket readystate', websocket.readyState)
-        if (websocket && websocket.readyState === 1) {
-          console.log('Getting next segment for cam', config.id)
-          websocket.send('next')
-        }
+        console.log('Getting next segment for cam', config.id)
+        websocket.send('next')
       })
     })
 
@@ -95,7 +93,7 @@ const WSCamera = memo(({ config }) => {
       ) :
         (
           <>
-            <div className="flex space-x-5 bg-black border border-white">
+            <div className={`flex space-x-5 bg-black border border-white`}>
               <span>ID: {config.id}</span>
               <span>Name: {config.name}</span>
               {config.location && <span>Location: {config.location}</span>}

@@ -43,7 +43,7 @@ logger = logging.getLogger(__name__)
 async def lifespan(app: FastAPI):
     logging.info("Executing startup tasks.")
     ## TODO: Uncomment
-    # process_manager.start_processes()
+    process_manager.start_processes()
     asyncio.create_task(process_manager._poll_processes())
     asyncio.create_task(process_manager._poll_restarts())
     yield
