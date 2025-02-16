@@ -273,9 +273,9 @@ class SegmentCamera(CameraBaseThread):
             "format": "segment",
             "options": {
                 "segment_time": "10",
-                "segment_format_options": "movflags=frag_keyframe+empty_moov+default_base_moof",
+                "segment_format_options": "movflags=frag_keyframe+empty_moov+default_base_moof+faststart",
                 "flags": "+cgop",
-                "g": "240",  # FPS * segment_time
+                "g": "200",  # FPS * segment_time
             },
         }
 
