@@ -7,8 +7,10 @@ from typing import List, Dict
 
 from app.db import get_session
 from app.db.models import Camera
-from app.processes import SegmentCamera
+
+# from app.processes import SegmentCamera
 from app.processes.enums import MessageType, ProcessType
+from app.threading.camera_thread import SegmentCamera
 
 logger = logging.getLogger(__name__)
 
@@ -67,7 +69,7 @@ class ProcessManager:
             return None
 
     def add_camera(self, py_cam: Camera):
-        """Create and add a camera process to the process pool."""
+        """Create and add a camera process/thread to the process pool."""
         try:
             if id in self.processes:
                 return f"Cannot create process with id:{id} because it already exists!"
@@ -80,7 +82,7 @@ class ProcessManager:
                 url=py_cam.url,
                 force_transcode=py_cam.force_transcode,
                 connection=child_conn,
-                daemon=True,
+                daemon=False,
             )
             camera.start()
         except Exception:
@@ -88,7 +90,7 @@ class ProcessManager:
                 logger.warning(
                     f"Camera recording process for id:{py_cam.id} was alive but killing it due to unknown exception."
                 )
-                camera.kill()
+                camera.stop()
             msg = f"Caught exception trying to start the recording."
             logger.exception(msg)
             return msg
@@ -156,7 +158,7 @@ class ProcessManager:
                         message.handle()
                         if message.m_type == MessageType.Error:
                             if self.retries.get(id) < self.max_restarts:
-                                self.restarts.append(id)
+                                # self.restarts.append(id)
                                 logger.warning(
                                     f"Encountered error with ID:{id}. Process has been "
                                     f"restarted {self.retries.get(id)} times"
