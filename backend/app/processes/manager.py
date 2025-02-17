@@ -10,7 +10,7 @@ from app.db.models import Camera
 
 # from app.processes import SegmentCamera
 from app.processes.enums import MessageType, ProcessType
-from app.threading.camera_thread import SegmentCamera
+from app.threading.camera import Segmenter
 
 logger = logging.getLogger(__name__)
 
@@ -76,7 +76,7 @@ class ProcessManager:
             logger.info(f"Adding new camera with id:{id}.")
 
             parent_conn, child_conn = mp.Pipe()
-            camera = SegmentCamera(
+            camera = Segmenter(
                 name=py_cam.name,
                 id=py_cam.id,
                 url=py_cam.url,
@@ -104,7 +104,7 @@ class ProcessManager:
         """Create a copy of a dead process based on the process type."""
         match dead_proc.proc_type:
             case ProcessType.AVCamera:
-                new_camera = SegmentCamera(
+                new_camera = Segmenter(
                     url=dead_proc.url,
                     id=dead_proc.id,
                     force_transcode=dead_proc.force_transcode,

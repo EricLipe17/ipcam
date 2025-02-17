@@ -1,4 +1,3 @@
-import threading
 from app.db import get_session
 from app.db.models import AudioStream, VideoStream, Camera
 from app.processes.messages import Message
@@ -17,6 +16,7 @@ import os
 import pytz
 from sqlalchemy.exc import SQLAlchemyError
 from sqlmodel import Session
+import threading
 import time
 
 
@@ -257,7 +257,7 @@ class CameraBaseThread(threading.Thread):
         self.output_container.close()
 
 
-class SegmentCamera(CameraBaseThread):
+class Segmenter(CameraBaseThread):
     def __init__(
         self,
         url: str,
